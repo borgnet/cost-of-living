@@ -264,12 +264,50 @@ export function housingComparison(cityIdA, cityIdB, budget, { mode = 'rent' } = 
   };
 }
 
-// Six-axis "feels-like" radar for a US city. Each axis is normalized to
+// Estimated savings capacity for a typical worker in a US city.
+//
+// Without a salary argument, uses the local BLS OEWS median individual wage
+// as the reference earner. With a salary, models that specific income.
+//
+// Subtracts state+local income tax and the local single-adult living wage
+// (MIT methodology, RPP-scaled) — what's left is what a worker could
+// realistically put toward savings, retirement, debt paydown, or extras.
+//
+// Federal tax is excluded on purpose — it doesn't vary between metros, so
+// including it would just shift every number by a constant and obscure
+// the local difference (same rationale as `takeHome`).
+//
+// Returns null for unknown cities, or { monthlyDollars, annualDollars,
+// ratePct, basis: 'median-wage' | 'user-salary' } otherwise.
+export function savingsCapacity(cityId, salary) {
+  const c = US_CITIES[cityId];
+  const f = US_CITY_FEELS[cityId];
+  if (!c || !f) return null;
+  const isUser = isFinite(salary) && salary > 0;
+  const grossSalary = isUser ? salary : c.medianWage;
+  const afterTax = grossSalary * (1 - f.effectiveTaxRate);
+  const livingWageSingle = NATIONAL_LIVING_WAGE_SINGLE * (c.rpp / 100);
+  const annualSurplus = afterTax - livingWageSingle;
+  const ratePct = afterTax > 0 ? (annualSurplus / afterTax) * 100 : 0;
+  return {
+    annualDollars: Math.round(annualSurplus),
+    monthlyDollars: Math.round(annualSurplus / 12),
+    ratePct,
+    basis: isUser ? 'user-salary' : 'median-wage',
+    grossSalary,
+    afterTax: Math.round(afterTax),
+    livingWageSingle: Math.round(livingWageSingle)
+  };
+}
+
+// Seven-axis "feels-like" radar for a US city. Each axis is normalized to
 // 0..100 (higher = better) so the chart shape matches the existing radar's
 // "bigger area = better" convention.
 //
 //   afterTaxPower   purchasing power AFTER state+local tax, vs. national
 //                   median household. ~70 = national, ~120 = doubly comfortable.
+//   savingsCap      ability to save: median-wage take-home minus the local
+//                   single-adult living wage, scaled. ~0% rate → 0, 40%+ → 100.
 //   housingValue    sqft per $1 of monthly rent at the local median, scaled
 //                   so a national-average market lands around 60.
 //   cultural        restaurants + arts establishments per 1k residents, ×20
@@ -278,13 +316,21 @@ export function housingComparison(cityIdA, cityIdB, budget, { mode = 'rent' } = 
 //   jobMarket       composite of (low) unemployment + 1-yr job growth + LFP.
 //   climateComfort  % of days with mean temp 50–80°F, scaled ×1.4 so the
 //                   best US metros (San Diego, coastal CA) land near 100.
-export function feelsLikeRadar(cityId) {
+//
+// Pass { salary } to swap the savingsCap axis from the median-wage default
+// to the user's actual salary — useful for "would I be able to save here?"
+// scenarios. Other axes don't depend on salary.
+export function feelsLikeRadar(cityId, { salary } = {}) {
   const c = US_CITIES[cityId];
   const f = US_CITY_FEELS[cityId];
   if (!c || !f) return null;
 
   const afterTaxIncome = c.medianHouseholdIncome * (1 - f.effectiveTaxRate);
   const afterTaxPower = clamp((afterTaxIncome / 65000) * 70, 0, 150);
+
+  const sav = savingsCapacity(cityId, salary);
+  // 0% rate → 0, 40% rate → 100. Negative rates clamp to 0.
+  const savingsCap = clamp(sav.ratePct * 2.5, 0, 100);
 
   const sqftPerDollar = f.median2brSqft / c.rent2br;
   // National average 2BR ≈ 1050 sqft / $1640 = 0.64 → land at 60.
@@ -306,6 +352,7 @@ export function feelsLikeRadar(cityId) {
 
   return {
     afterTaxPower,
+    savingsCap,
     housingValue,
     cultural,
     greenSpace,
@@ -321,8 +368,9 @@ export function rankFeelsLike({ order = 'desc' } = {}) {
     .map(id => {
       const r = feelsLikeRadar(id);
       const c = US_CITIES[id];
-      const score = r ? (r.afterTaxPower + r.housingValue + r.cultural +
-                         r.greenSpace + r.jobMarket + r.climateComfort) / 6 : 0;
+      const score = r ? (r.afterTaxPower + r.savingsCap + r.housingValue +
+                         r.cultural + r.greenSpace + r.jobMarket +
+                         r.climateComfort) / 7 : 0;
       return { id, name: c.name, state: c.state, radar: r, score };
     })
     .sort((a, b) => (a.score - b.score) * (order === 'asc' ? 1 : -1));

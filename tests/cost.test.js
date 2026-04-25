@@ -6,7 +6,7 @@ import {
   rankCountries, affordabilityGauge, searchPlaces,
   householdMultiplier, householdLabel,
   feelsLikeRadar, takeHome, estimateStateTax, sqftAtBudget, sqftAtBuyBudget,
-  housingComparison, rankFeelsLike,
+  housingComparison, rankFeelsLike, savingsCapacity,
   US_CITIES, COUNTRIES, US_CITY_FEELS, US_CITY_BUY
 } from '../cost.js';
 
@@ -383,6 +383,57 @@ test('housingComparison buy: NYC vs Albany swings the right direction', () => {
 });
 
 // ─── Commuter / destination cohort ──────────────────────────────────────────
+
+// ─── Savings capacity ──────────────────────────────────────────────────────
+
+test('savingsCapacity: returns null for unknown city; defaults to median wage', () => {
+  assert.equal(savingsCapacity('zzzz'), null);
+  const s = savingsCapacity('austin');
+  assert.equal(s.basis, 'median-wage');
+  assert.equal(s.grossSalary, US_CITIES.austin.medianWage);
+  assert.ok(s.monthlyDollars > 0);
+  assert.ok(s.ratePct > 0 && s.ratePct < 100);
+});
+
+test('savingsCapacity: user salary swaps basis and scales monthly $', () => {
+  const small = savingsCapacity('austin', 60000);
+  const big   = savingsCapacity('austin', 200000);
+  assert.equal(big.basis, 'user-salary');
+  assert.ok(big.monthlyDollars > small.monthlyDollars);
+  assert.ok(big.ratePct > small.ratePct);
+});
+
+test('savingsCapacity: same gross salary saves more in TX than NYC', () => {
+  // Austin: no state tax. NYC: state + city tax. Living wage scales with
+  // RPP so NYC's living wage is much higher too. Net: same $200k goes
+  // strictly further in Austin.
+  const austin = savingsCapacity('austin', 200000);
+  const nyc    = savingsCapacity('nyc', 200000);
+  assert.ok(austin.monthlyDollars > nyc.monthlyDollars);
+});
+
+test('savingsCapacity: low-income high-cost metros can show negative savings', () => {
+  // At a $40k salary in NYC, a single adult can't cover the local living
+  // wage — savings capacity should be negative.
+  const s = savingsCapacity('nyc', 40000);
+  assert.ok(s.monthlyDollars < 0);
+});
+
+test('feelsLikeRadar: now exposes a savingsCap axis in 0..100', () => {
+  const r = feelsLikeRadar('san_franc');
+  assert.ok('savingsCap' in r);
+  assert.ok(r.savingsCap >= 0 && r.savingsCap <= 100);
+});
+
+test('feelsLikeRadar: salary override changes savingsCap, not other axes', () => {
+  const base = feelsLikeRadar('san_franc');
+  const userBig = feelsLikeRadar('san_franc', { salary: 400000 });
+  assert.notEqual(base.savingsCap, userBig.savingsCap);
+  assert.ok(userBig.savingsCap >= base.savingsCap);
+  assert.equal(base.afterTaxPower, userBig.afterTaxPower);
+  assert.equal(base.housingValue, userBig.housingValue);
+  assert.equal(base.cultural, userBig.cultural);
+});
 
 test('Commuter cohort: all expected cities are present and have full coverage', () => {
   const expected = ['sacramento', 'fresno', 'stockton', 'bakersfield', 'riverside',

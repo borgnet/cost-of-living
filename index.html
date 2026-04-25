@@ -383,7 +383,7 @@
     <p style="font-size:11px;color:var(--dim);margin:8px 0 0;" id="radar-note">Six-axis radar: selected place (blue) vs. peer-group median (orange). Higher is better on every axis. Affordability inverts cost; safety inverts crime.</p>
   </details>
 
-  <details class="collapsible" id="feels-details">
+  <details class="collapsible" id="feels-details" open>
     <summary><span>Feels-like radar (US cities)</span></summary>
 
     <div class="feels-cards" id="feels-cards"></div>
@@ -460,6 +460,13 @@
     </details>
 
     <details itemscope itemprop="mainEntity" itemtype="https://schema.org/Question">
+      <summary itemprop="name">How is "savings capacity" estimated?</summary>
+      <div itemscope itemprop="acceptedAnswer" itemtype="https://schema.org/Answer">
+        <p itemprop="text">Savings capacity = take-home minus the local single-adult living wage (MIT methodology, scaled by BEA RPP). The default uses the metro's BLS OEWS median individual wage as the reference earner, which approximates a typical full-time worker in that market. Enter your own salary in the input above and the radar's "Savings capacity" axis and the savings card both swap to your scenario. The metric captures what's realistically left over for retirement, debt paydown, an emergency fund, or just buying back time — and it's why some lower-wage metros (Memphis, Albuquerque) can still leave more in your pocket than a high-wage metro with high taxes and rent (e.g., NYC). Federal tax is excluded on purpose so the local difference is what shows.</p>
+      </div>
+    </details>
+
+    <details itemscope itemprop="mainEntity" itemtype="https://schema.org/Question">
       <summary itemprop="name">How is "take-home" calculated?</summary>
       <div itemscope itemprop="acceptedAnswer" itemtype="https://schema.org/Answer">
         <p itemprop="text">Take-home subtracts an estimated state + average local income tax from your input salary. Federal tax is deliberately excluded because federal rates don't change between metros — including them would just inflate every number by the same amount and obscure the local difference. The state effective rate uses the rate paid by the local median earner (sourced from Tax Foundation tables), which approximates a typical worker within ~1pp. For high-tax states with city-level taxes (NYC, Philadelphia, Detroit, Baltimore), the city portion is included.</p>
@@ -507,7 +514,8 @@
   <script type="module">
     import {
       resolvePlace, summarizeCity, summarizeCountry, rankUsCities, rankCountries,
-      affordabilityGauge, feelsLikeRadar, takeHome, sqftAtBudget, housingComparison,
+      affordabilityGauge, feelsLikeRadar, takeHome, savingsCapacity,
+      sqftAtBudget, housingComparison,
       US_CITIES, COUNTRIES, US_CITY_FEELS
     } from './cost.js';
 
@@ -854,8 +862,8 @@
     }
 
     let feelsChart;
-    const FEELS_KEYS = ['afterTaxPower', 'housingValue', 'cultural', 'greenSpace', 'jobMarket', 'climateComfort'];
-    const FEELS_LABELS = ['After-tax\npower', 'Housing\nspace', 'Cultural\ndensity', 'Parks &\ngreen', 'Job\nmarket', 'Climate\ncomfort'];
+    const FEELS_KEYS = ['afterTaxPower', 'savingsCap', 'housingValue', 'cultural', 'greenSpace', 'jobMarket', 'climateComfort'];
+    const FEELS_LABELS = ['After-tax\npower', 'Savings\ncapacity', 'Housing\nspace', 'Cultural\ndensity', 'Parks &\ngreen', 'Job\nmarket', 'Climate\ncomfort'];
 
     function renderFeelsCards() {
       const place = resolvePlace(state.p);
@@ -868,8 +876,9 @@
       const c = US_CITIES[state.p];
       const f = US_CITY_FEELS[state.p];
       const userS = parseFloat(state.s);
+      const haveSalary = isFinite(userS) && userS > 0;
       const cards = [];
-      if (isFinite(userS) && userS > 0) {
+      if (haveSalary) {
         const th = takeHome(state.p, userS);
         const taxBill = userS - th;
         cards.push(card(
@@ -885,6 +894,19 @@
           'effective rate at local median'
         ));
       }
+
+      // Savings capacity card. If the user entered a salary, reflect their
+      // ability to save here; otherwise reflect a typical local worker.
+      const sav = savingsCapacity(state.p, haveSalary ? userS : undefined);
+      if (sav) {
+        const label = sav.basis === 'user-salary' ? 'Your savings (est.)' : 'Typical savings';
+        const klass = sav.monthlyDollars >= 0 ? 'good' : 'warn';
+        const sub = sav.basis === 'user-salary'
+          ? `${fmtPct(sav.ratePct, 0)} of take-home after living costs`
+          : `${fmtPct(sav.ratePct, 0)} of median wage take-home`;
+        cards.push(card(label, fmtMoney(sav.monthlyDollars, { compact: true }) + '/mo', sub, klass));
+      }
+
       cards.push(card('Park score', fmtNum(f.parkScore, 0) + ' / 100', 'Trust for Public Land 2024'));
       cards.push(card('Job growth (1y)', fmtPct(f.jobGrowth1y, 1), `unemployment ${fmtPct(f.unemploymentRate, 1)} · LFP ${fmtPct(f.lfpRate, 0)}`));
       cards.push(card('Climate comfort', fmtPct(f.pctComfortDays, 0), 'days 50–80°F (NOAA)'));
@@ -927,8 +949,13 @@
         if (feelsChart) { feelsChart.destroy(); feelsChart = null; }
         return;
       }
-      const radar = feelsLikeRadar(state.p);
+      const userS = parseFloat(state.s);
+      const salaryArg = (isFinite(userS) && userS > 0) ? { salary: userS } : {};
+      const radar = feelsLikeRadar(state.p, salaryArg);
       const c = US_CITIES[state.p];
+      // Peer-median always uses each city's median wage (the typical worker
+      // baseline), so the comparison stays comparable when a user salary
+      // skews the selected city's savings axis.
       const allRadars = Object.keys(US_CITY_FEELS)
         .map(id => feelsLikeRadar(id))
         .filter(Boolean);
