@@ -6,7 +6,7 @@ import {
   rankCountries, affordabilityGauge, searchPlaces,
   householdMultiplier, householdLabel,
   feelsLikeRadar, takeHome, estimateStateTax, sqftAtBudget, sqftAtBuyBudget,
-  housingComparison, rankFeelsLike, savingsCapacity,
+  housingComparison, rankFeelsLike, savingsCapacity, federalIncomeTax,
   US_CITIES, COUNTRIES, US_CITY_FEELS, US_CITY_BUY
 } from '../cost.js';
 
@@ -386,13 +386,41 @@ test('housingComparison buy: NYC vs Albany swings the right direction', () => {
 
 // ─── Savings capacity ──────────────────────────────────────────────────────
 
+test('federalIncomeTax: 2025 brackets — known anchor points', () => {
+  // 60k single, std deduction $15k → taxable $45k.
+  // 10% on first $11,925 = $1,192.50; 12% on next $33,075 = $3,969.
+  // Total ≈ $5,161.50.
+  close(federalIncomeTax(60000, 'single'), 5162, 5);
+  // 200k single → taxable $185k. Walk brackets.
+  // 1192.50 (10%) + 4386 (12% on 36,550) + 12092.50 (22% on 54,975) +
+  // 19596 (24% on 81,650) = $37,267 (within $20).
+  close(federalIncomeTax(200000, 'single'), 37247, 50);
+  // MFJ doubles brackets roughly. Same gross, married, ≈ $27k.
+  close(federalIncomeTax(200000, 'mfj'), 27228, 50);
+  // Below standard deduction → 0 tax.
+  assert.equal(federalIncomeTax(10000, 'single'), 0);
+  assert.equal(federalIncomeTax(0, 'single'), 0);
+});
+
 test('savingsCapacity: returns null for unknown city; defaults to median wage', () => {
   assert.equal(savingsCapacity('zzzz'), null);
   const s = savingsCapacity('austin');
   assert.equal(s.basis, 'median-wage');
   assert.equal(s.grossSalary, US_CITIES.austin.medianWage);
+  // After full taxes + cost the typical-worker leftover is small but
+  // still positive in Austin (no state tax, modest cost).
   assert.ok(s.monthlyDollars > 0);
   assert.ok(s.ratePct > 0 && s.ratePct < 100);
+});
+
+test('savingsCapacity: full breakdown is reported', () => {
+  const s = savingsCapacity('san_franc', 200000, { adults: 1, children: 0 });
+  assert.ok(s.federalTax > 0);
+  assert.ok(s.stateTax > 0);
+  assert.ok(s.ficaTax > 0);
+  assert.equal(s.afterTax, s.grossSalary - s.federalTax - s.stateTax - s.ficaTax);
+  assert.equal(s.annualDollars, s.afterTax - s.essentialCosts);
+  close(s.monthlyDollars, s.annualDollars / 12, 1);
 });
 
 test('savingsCapacity: user salary swaps basis and scales monthly $', () => {
@@ -403,20 +431,27 @@ test('savingsCapacity: user salary swaps basis and scales monthly $', () => {
   assert.ok(big.ratePct > small.ratePct);
 });
 
-test('savingsCapacity: same gross salary saves more in TX than NYC', () => {
-  // Austin: no state tax. NYC: state + city tax. Living wage scales with
-  // RPP so NYC's living wage is much higher too. Net: same $200k goes
-  // strictly further in Austin.
+test('savingsCapacity: same gross saves more in TX than NYC', () => {
+  // Austin: no state tax, lower RPP. NYC: state+city tax, higher RPP.
+  // Same $200k goes strictly further in Austin.
   const austin = savingsCapacity('austin', 200000);
   const nyc    = savingsCapacity('nyc', 200000);
   assert.ok(austin.monthlyDollars > nyc.monthlyDollars);
 });
 
-test('savingsCapacity: low-income high-cost metros can show negative savings', () => {
-  // At a $40k salary in NYC, a single adult can't cover the local living
-  // wage — savings capacity should be negative.
+test('savingsCapacity: low-income high-cost can be negative', () => {
+  // $40k single in NYC: federal+state+FICA + NYC living wage ≫ take-home.
   const s = savingsCapacity('nyc', 40000);
   assert.ok(s.monthlyDollars < 0);
+});
+
+test('savingsCapacity: household scaling raises essential costs', () => {
+  const single = savingsCapacity('memphis', 70000, { adults: 1, children: 0 });
+  const family = savingsCapacity('memphis', 70000, { adults: 2, children: 2 });
+  assert.ok(family.essentialCosts > single.essentialCosts);
+  assert.ok(family.monthlyDollars < single.monthlyDollars);
+  assert.equal(family.filingStatus, 'mfj');
+  assert.equal(single.filingStatus, 'single');
 });
 
 test('feelsLikeRadar: now exposes a savingsCap axis in 0..100', () => {

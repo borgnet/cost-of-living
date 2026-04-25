@@ -264,38 +264,111 @@ export function housingComparison(cityIdA, cityIdB, budget, { mode = 'rent' } = 
   };
 }
 
-// Estimated savings capacity for a typical worker in a US city.
+// 2025 federal income tax brackets + standard deduction.
+// Used to compute realistic take-home for the savings/leftover calculation.
+const FED_BRACKETS_SINGLE = [
+  [0,       0.10],
+  [11925,   0.12],
+  [48475,   0.22],
+  [103350,  0.24],
+  [197300,  0.32],
+  [250525,  0.35],
+  [626350,  0.37]
+];
+const FED_BRACKETS_MFJ = [
+  [0,       0.10],
+  [23850,   0.12],
+  [96950,   0.22],
+  [206700,  0.24],
+  [394600,  0.32],
+  [501050,  0.35],
+  [751600,  0.37]
+];
+const STD_DED_SINGLE = 15000;
+const STD_DED_MFJ    = 30000;
+// FICA = Social Security 6.2% + Medicare 1.45% (employee portion only;
+// SS wage base $168,600 for 2025 — most readers stay below it, so we
+// model the flat 7.65% for clarity).
+const FICA_RATE = 0.0765;
+
+// Federal income tax owed on a gross salary, using 2025 brackets and
+// standard deduction. `status` is 'single' (default) or 'mfj'.
+export function federalIncomeTax(income, status = 'single') {
+  if (!isFinite(income) || income <= 0) return 0;
+  const brackets = status === 'mfj' ? FED_BRACKETS_MFJ : FED_BRACKETS_SINGLE;
+  const stdDed = status === 'mfj' ? STD_DED_MFJ : STD_DED_SINGLE;
+  const taxable = Math.max(0, income - stdDed);
+  let tax = 0;
+  for (let i = 0; i < brackets.length; i++) {
+    const lower = brackets[i][0];
+    const rate  = brackets[i][1];
+    const upper = i + 1 < brackets.length ? brackets[i + 1][0] : Infinity;
+    if (taxable <= lower) break;
+    const slice = Math.min(taxable, upper) - lower;
+    tax += slice * rate;
+  }
+  return tax;
+}
+
+// Money left after federal + state/local + FICA taxes and household-scaled
+// essential costs.
 //
 // Without a salary argument, uses the local BLS OEWS median individual wage
 // as the reference earner. With a salary, models that specific income.
 //
-// Subtracts state+local income tax and the local single-adult living wage
-// (MIT methodology, RPP-scaled) — what's left is what a worker could
-// realistically put toward savings, retirement, debt paydown, or extras.
+// What gets subtracted:
+//   federalTax       2025 brackets + standard deduction; status defaults to
+//                    'mfj' when adults >= 2 (so a household with two earners
+//                    is roughly modeled), else 'single'.
+//   stateTax         effective state + average local income tax rate at the
+//                    local median earner (Tax Foundation 2025).
+//   ficaTax          7.65% Social Security + Medicare (employee share).
+//   essentialCosts   single-adult living wage (MIT × BEA RPP) scaled by the
+//                    household multiplier (adults + children).
 //
-// Federal tax is excluded on purpose — it doesn't vary between metros, so
-// including it would just shift every number by a constant and obscure
-// the local difference (same rationale as `takeHome`).
+// What this is NOT modeling: itemized deductions, retirement plan
+// contributions (which would reduce taxable income), child tax credit,
+// EITC, mortgage interest deduction, property tax, sales tax, healthcare
+// premium tax credits. Those vary too much by individual situation; the
+// goal is a realistic floor.
 //
-// Returns null for unknown cities, or { monthlyDollars, annualDollars,
-// ratePct, basis: 'median-wage' | 'user-salary' } otherwise.
-export function savingsCapacity(cityId, salary) {
+// Returns null for unknown cities; otherwise an object with the full
+// breakdown.
+export function savingsCapacity(cityId, salary, opts = {}) {
   const c = US_CITIES[cityId];
   const f = US_CITY_FEELS[cityId];
   if (!c || !f) return null;
+  const adults = Math.max(1, Math.floor(opts.adults || 1));
+  const children = Math.max(0, Math.floor(opts.children || 0));
+  const status = opts.filingStatus || (adults >= 2 ? 'mfj' : 'single');
   const isUser = isFinite(salary) && salary > 0;
   const grossSalary = isUser ? salary : c.medianWage;
-  const afterTax = grossSalary * (1 - f.effectiveTaxRate);
+
+  const federalTaxOwed = federalIncomeTax(grossSalary, status);
+  const stateTaxOwed   = grossSalary * f.effectiveTaxRate;
+  const ficaTaxOwed    = grossSalary * FICA_RATE;
+  const afterTax = Math.max(0, grossSalary - federalTaxOwed - stateTaxOwed - ficaTaxOwed);
+
   const livingWageSingle = NATIONAL_LIVING_WAGE_SINGLE * (c.rpp / 100);
-  const annualSurplus = afterTax - livingWageSingle;
-  const ratePct = afterTax > 0 ? (annualSurplus / afterTax) * 100 : 0;
+  const essentialCosts   = livingWageSingle * householdMultiplier(adults, children);
+
+  const annualLeftover = afterTax - essentialCosts;
+  const ratePct = afterTax > 0 ? (annualLeftover / afterTax) * 100 : 0;
+
   return {
-    annualDollars: Math.round(annualSurplus),
-    monthlyDollars: Math.round(annualSurplus / 12),
+    grossSalary:    Math.round(grossSalary),
+    federalTax:     Math.round(federalTaxOwed),
+    stateTax:       Math.round(stateTaxOwed),
+    ficaTax:        Math.round(ficaTaxOwed),
+    afterTax:       Math.round(afterTax),
+    essentialCosts: Math.round(essentialCosts),
+    annualDollars:  Math.round(annualLeftover),
+    monthlyDollars: Math.round(annualLeftover / 12),
     ratePct,
     basis: isUser ? 'user-salary' : 'median-wage',
-    grossSalary,
-    afterTax: Math.round(afterTax),
+    filingStatus: status,
+    adults,
+    children,
     livingWageSingle: Math.round(livingWageSingle)
   };
 }
@@ -329,8 +402,10 @@ export function feelsLikeRadar(cityId, { salary } = {}) {
   const afterTaxPower = clamp((afterTaxIncome / 65000) * 70, 0, 150);
 
   const sav = savingsCapacity(cityId, salary);
-  // 0% rate → 0, 40% rate → 100. Negative rates clamp to 0.
-  const savingsCap = clamp(sav.ratePct * 2.5, 0, 100);
+  // After full taxes (fed + state + FICA) and household-scaled costs, even
+  // strong-saving metros land near 25% rate. Tune the axis so 0% → 0 and
+  // 25%+ → 100. Negative rates clamp to 0.
+  const savingsCap = clamp(sav.ratePct * 4, 0, 100);
 
   const sqftPerDollar = f.median2brSqft / c.rent2br;
   // National average 2BR ≈ 1050 sqft / $1640 = 0.64 → land at 60.

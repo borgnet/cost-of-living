@@ -133,6 +133,29 @@
       gap: 10px; margin: 0.5rem 0 1rem;
     }
     @media (min-width: 560px) { .feels-cards { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+    .savings-breakdown {
+      background: var(--card); border-radius: 12px; padding: 1rem 1.1rem;
+      margin: 0.5rem 0 1rem;
+    }
+    .sb-head {
+      display: flex; flex-wrap: wrap; align-items: baseline;
+      justify-content: space-between; gap: 12px; margin-bottom: 0.5rem;
+    }
+    .sb-title { font-size: 13px; font-weight: 600; color: var(--fg); margin: 0; }
+    .sb-amount { font-size: 22px; font-weight: 600; color: var(--g-accent); margin: 0; line-height: 1.1; }
+    .sb-amount.negative { color: var(--b-accent); }
+    .sb-rate { font-size: 12px; color: var(--muted); margin-left: 6px; }
+    .sb-flow {
+      display: grid; grid-template-columns: 1fr; gap: 4px; font-size: 12px;
+      color: var(--muted); margin: 0;
+    }
+    @media (min-width: 560px) { .sb-flow { grid-template-columns: repeat(2, minmax(0,1fr)); column-gap: 18px; } }
+    .sb-line { display: flex; justify-content: space-between; gap: 8px; padding: 2px 0; }
+    .sb-line .sb-label { color: var(--dim); }
+    .sb-line .sb-value { color: var(--fg); font-variant-numeric: tabular-nums; }
+    .sb-line.sub { padding-left: 12px; color: var(--dim); font-size: 11px; }
+    .sb-line.total { border-top: 0.5px solid var(--border-soft); padding-top: 6px; margin-top: 4px; font-weight: 500; }
+    .sb-note { font-size: 11px; color: var(--dim); margin: 0.4rem 0 0; }
     .rent-compare {
       background: var(--card); border-radius: 12px; padding: 1rem 1.1rem;
       margin: 0 0 1rem;
@@ -386,6 +409,8 @@
   <details class="collapsible" id="feels-details" open>
     <summary><span>Feels-like radar (US cities)</span></summary>
 
+    <div class="savings-breakdown" id="savings-breakdown" hidden></div>
+
     <div class="feels-cards" id="feels-cards"></div>
 
     <div class="rent-compare" id="rent-compare" hidden>
@@ -460,9 +485,9 @@
     </details>
 
     <details itemscope itemprop="mainEntity" itemtype="https://schema.org/Question">
-      <summary itemprop="name">How is "savings capacity" estimated?</summary>
+      <summary itemprop="name">How is "leftover after taxes &amp; essential costs" calculated?</summary>
       <div itemscope itemprop="acceptedAnswer" itemtype="https://schema.org/Answer">
-        <p itemprop="text">Savings capacity = take-home minus the local single-adult living wage (MIT methodology, scaled by BEA RPP). The default uses the metro's BLS OEWS median individual wage as the reference earner, which approximates a typical full-time worker in that market. Enter your own salary in the input above and the radar's "Savings capacity" axis and the savings card both swap to your scenario. The metric captures what's realistically left over for retirement, debt paydown, an emergency fund, or just buying back time — and it's why some lower-wage metros (Memphis, Albuquerque) can still leave more in your pocket than a high-wage metro with high taxes and rent (e.g., NYC). Federal tax is excluded on purpose so the local difference is what shows.</p>
+        <p itemprop="text">Annual leftover = gross salary − federal income tax (2025 brackets, standard deduction) − state + average local income tax (Tax Foundation effective rate at the local median earner) − FICA (Social Security 6.2% + Medicare 1.45%) − household-scaled essential costs (MIT single-adult living wage × BEA RPP × household multiplier). Filing status defaults to "married filing jointly" when the household has 2+ adults, else "single." The default basis is the metro's BLS OEWS median individual wage; entering a salary above swaps the basis. The breakdown card shows each line so the math is visible. <strong>What's not modeled:</strong> itemized deductions, 401(k) / IRA / HSA contributions (which would reduce taxable income), Child Tax Credit, EITC, mortgage-interest deduction, property tax, sales tax, healthcare premium tax credits — these vary too much by individual situation. The goal is a realistic <em>floor</em>, not a tax return. The number can go negative in expensive metros at modest salaries — that's accurate, not a bug.</p>
       </div>
     </details>
 
@@ -939,22 +964,58 @@
         ));
       }
 
-      // Savings capacity card. If the user entered a salary, reflect their
-      // ability to save here; otherwise reflect a typical local worker.
-      const sav = savingsCapacity(state.p, haveSalary ? userS : undefined);
-      if (sav) {
-        const label = sav.basis === 'user-salary' ? 'Your savings (est.)' : 'Typical savings';
-        const klass = sav.monthlyDollars >= 0 ? 'good' : 'warn';
-        const sub = sav.basis === 'user-salary'
-          ? `${fmtPct(sav.ratePct, 0)} of take-home after living costs`
-          : `${fmtPct(sav.ratePct, 0)} of median wage take-home`;
-        cards.push(card(label, fmtMoney(sav.monthlyDollars, { compact: true }) + '/mo', sub, klass));
-      }
-
       cards.push(card('Park score', fmtNum(f.parkScore, 0) + ' / 100', 'Trust for Public Land 2024'));
       cards.push(card('Job growth (1y)', fmtPct(f.jobGrowth1y, 1), `unemployment ${fmtPct(f.unemploymentRate, 1)} · LFP ${fmtPct(f.lfpRate, 0)}`));
       cards.push(card('Climate comfort', fmtPct(f.pctComfortDays, 0), 'days 50–80°F (NOAA)'));
       wrap.innerHTML = cards.join('');
+    }
+
+    function renderSavingsBreakdown() {
+      const place = resolvePlace(state.p);
+      const wrap = $('#savings-breakdown');
+      if (!wrap) return;
+      if (!place || place.kind !== 'us' || !US_CITY_FEELS[state.p]) {
+        wrap.hidden = true;
+        return;
+      }
+      wrap.hidden = false;
+      const userS = parseFloat(state.s);
+      const haveSalary = isFinite(userS) && userS > 0;
+      const sav = savingsCapacity(state.p, haveSalary ? userS : undefined,
+        { adults: state.a, children: state.k });
+      if (!sav) { wrap.hidden = true; return; }
+      const title = sav.basis === 'user-salary'
+        ? `Leftover after taxes &amp; essential costs · your scenario`
+        : `Leftover after taxes &amp; essential costs · typical worker`;
+      const monthly = fmtMoney(sav.monthlyDollars, { compact: false }).replace(/\.\d+$/, '');
+      const negCls = sav.monthlyDollars < 0 ? ' negative' : '';
+      const monthlyAbs = sav.monthlyDollars < 0 ? '−' + fmtMoney(Math.abs(sav.monthlyDollars), { compact: false }).replace(/\.\d+$/, '') : monthly;
+      const rateLabel = `${sav.ratePct.toFixed(1)}% of take-home`;
+      const taxesTotal = sav.federalTax + sav.stateTax + sav.ficaTax;
+      const hh = householdLabel(sav.adults, sav.children);
+      const filing = sav.filingStatus === 'mfj' ? 'married filing jointly' : 'single';
+      wrap.innerHTML = `
+        <div class="sb-head">
+          <p class="sb-title">${title}</p>
+          <p class="sb-amount${negCls}">${monthlyAbs}/mo<span class="sb-rate">· ${rateLabel}</span></p>
+        </div>
+        <div class="sb-flow">
+          <div>
+            <div class="sb-line"><span class="sb-label">Gross salary</span><span class="sb-value">${fmtMoney(sav.grossSalary, { compact: false })}</span></div>
+            <div class="sb-line sub"><span class="sb-label">− Federal tax (${filing})</span><span class="sb-value">${fmtMoney(sav.federalTax, { compact: false })}</span></div>
+            <div class="sb-line sub"><span class="sb-label">− State + local tax</span><span class="sb-value">${fmtMoney(sav.stateTax, { compact: false })}</span></div>
+            <div class="sb-line sub"><span class="sb-label">− FICA (SS + Medicare)</span><span class="sb-value">${fmtMoney(sav.ficaTax, { compact: false })}</span></div>
+            <div class="sb-line total"><span class="sb-label">After-tax</span><span class="sb-value">${fmtMoney(sav.afterTax, { compact: false })}</span></div>
+          </div>
+          <div>
+            <div class="sb-line"><span class="sb-label">After-tax</span><span class="sb-value">${fmtMoney(sav.afterTax, { compact: false })}</span></div>
+            <div class="sb-line sub"><span class="sb-label">− Essential costs · ${hh}</span><span class="sb-value">${fmtMoney(sav.essentialCosts, { compact: false })}</span></div>
+            <div class="sb-line total"><span class="sb-label">Annual leftover</span><span class="sb-value">${fmtMoney(sav.annualDollars, { compact: false })}</span></div>
+            <div class="sb-line"><span class="sb-label">Monthly leftover</span><span class="sb-value">${fmtMoney(sav.monthlyDollars, { compact: false })}</span></div>
+          </div>
+        </div>
+        <p class="sb-note">${sav.basis === 'user-salary' ? 'Based on your salary' : `Based on the local BLS median wage of ${fmtMoney(sav.grossSalary, { compact: true })}`} · 2025 federal brackets · standard deduction · MIT-methodology essential costs (RPP-scaled, household-multiplied). Excludes itemized deductions, retirement contributions, child tax credit, mortgage interest. Enter a salary above for your scenario.</p>
+      `;
     }
 
     function renderRentCompare() {
@@ -1006,9 +1067,36 @@
       const peer = FEELS_KEYS.map(k => median(allRadars.map(r => r[k])));
       const selected = FEELS_KEYS.map(k => radar[k]);
       const datasets = [
-        { label: `${c.name}, ${c.state}`, data: selected, borderColor: '#185FA5', backgroundColor: 'rgba(55,138,221,0.20)', fill: true, pointRadius: 3, borderWidth: 2 },
-        { label: 'US-cohort median', data: peer, borderColor: '#2A8755', backgroundColor: 'rgba(42,135,85,0.10)', fill: false, pointRadius: 2, borderWidth: 2, borderDash: [4, 4] }
+        { label: `${c.name}, ${c.state}`, data: selected, borderColor: '#185FA5', backgroundColor: 'rgba(55,138,221,0.20)', fill: true, pointRadius: 3, borderWidth: 2 }
       ];
+      // Optional comparison-city overlay (reuses the housing-compare "vs"
+      // selection). Only adds a third dataset when the user has picked a
+      // different city.
+      if (state.vs && state.vs !== state.p && US_CITY_FEELS[state.vs]) {
+        const vsRadar = feelsLikeRadar(state.vs);
+        if (vsRadar) {
+          const vsCity = US_CITIES[state.vs];
+          datasets.push({
+            label: `${vsCity.name}, ${vsCity.state}`,
+            data: FEELS_KEYS.map(k => vsRadar[k]),
+            borderColor: '#C7522A',
+            backgroundColor: 'rgba(199,82,42,0.12)',
+            fill: true,
+            pointRadius: 3,
+            borderWidth: 2
+          });
+        }
+      }
+      datasets.push({
+        label: 'US-cohort median',
+        data: peer,
+        borderColor: '#2A8755',
+        backgroundColor: 'rgba(42,135,85,0.10)',
+        fill: false,
+        pointRadius: 2,
+        borderWidth: 2,
+        borderDash: [4, 4]
+      });
       if (feelsChart) {
         feelsChart.data.labels = FEELS_LABELS;
         feelsChart.data.datasets = datasets;
@@ -1131,6 +1219,7 @@
       renderGauge();
       renderRadar();
       renderFeelsCards();
+      renderSavingsBreakdown();
       renderRentCompare();
       renderFeelsRadar();
       renderScenarioSummary();
