@@ -2,7 +2,7 @@
 // All inputs are validated permissively; unknown ids return null.
 
 import {
-  US_CITIES, COUNTRIES, DATA_SOURCE,
+  US_CITIES, COUNTRIES, DATA_SOURCE, US_CITY_FEELS,
   NATIONAL_LIVING_WAGE_SINGLE, NATIONAL_MEDIAN_WAGE, NATIONAL_RENT_2BR
 } from './data.js';
 
@@ -195,6 +195,120 @@ export function affordabilityGauge(cityId, userSalary, { adults = 1, children = 
   return { city: c, thresholds, band, userSalary };
 }
 
+// ─── Feels-like layer ──────────────────────────────────────────────────────
+//
+// All inputs are public-data snapshots; see DATA_SOURCE for citations and
+// US_CITY_FEELS in data.js for the per-city values.
+
+// Estimate state + average local income tax owed at a given salary in a city.
+// Uses the effective rate at the local median earner as a proxy — accurate
+// within ~1pp for typical salaries, and cleanly handles flat-tax and no-tax
+// states. Returns 0 for unknown cities (rather than throwing).
+export function estimateStateTax(cityId, salary) {
+  const f = US_CITY_FEELS[cityId];
+  if (!f || !isFinite(salary) || salary <= 0) return 0;
+  return salary * f.effectiveTaxRate;
+}
+
+// Take-home = salary − estimated state/local income tax. Federal tax is
+// excluded on purpose — federal rates don't vary by metro, so they cancel
+// out for relocation comparisons (which is the use case here).
+export function takeHome(cityId, salary) {
+  if (!isFinite(salary) || salary <= 0) return 0;
+  return Math.max(0, salary - estimateStateTax(cityId, salary));
+}
+
+// Square footage you can rent for `monthlyBudget` in a given city, using the
+// metro's median 2BR rent and median 2BR square footage as the price-per-sqft
+// reference point. Returns 0 for unknown cities.
+export function sqftAtBudget(cityId, monthlyBudget) {
+  const c = US_CITIES[cityId];
+  const f = US_CITY_FEELS[cityId];
+  if (!c || !f || !isFinite(monthlyBudget) || monthlyBudget <= 0) return 0;
+  const sqftPerDollar = f.median2brSqft / c.rent2br;
+  return Math.round(sqftPerDollar * monthlyBudget);
+}
+
+// Side-by-side housing comparison: same monthly budget, two cities.
+// Returns null if either city is unknown.
+export function housingComparison(cityIdA, cityIdB, monthlyBudget) {
+  if (!US_CITIES[cityIdA] || !US_CITIES[cityIdB]) return null;
+  if (!isFinite(monthlyBudget) || monthlyBudget <= 0) return null;
+  const a = sqftAtBudget(cityIdA, monthlyBudget);
+  const b = sqftAtBudget(cityIdB, monthlyBudget);
+  return {
+    a: { id: cityIdA, name: US_CITIES[cityIdA].name, sqft: a },
+    b: { id: cityIdB, name: US_CITIES[cityIdB].name, sqft: b },
+    monthlyBudget,
+    delta: b - a,
+    deltaPct: a > 0 ? ((b - a) / a) * 100 : 0
+  };
+}
+
+// Six-axis "feels-like" radar for a US city. Each axis is normalized to
+// 0..100 (higher = better) so the chart shape matches the existing radar's
+// "bigger area = better" convention.
+//
+//   afterTaxPower   purchasing power AFTER state+local tax, vs. national
+//                   median household. ~70 = national, ~120 = doubly comfortable.
+//   housingValue    sqft per $1 of monthly rent at the local median, scaled
+//                   so a national-average market lands around 60.
+//   cultural        restaurants + arts establishments per 1k residents, ×20
+//                   (so a typical big-city density ~3.5 → 70).
+//   greenSpace      Trust for Public Land ParkScore, used directly.
+//   jobMarket       composite of (low) unemployment + 1-yr job growth + LFP.
+//   climateComfort  % of days with mean temp 50–80°F, scaled ×1.4 so the
+//                   best US metros (San Diego, coastal CA) land near 100.
+export function feelsLikeRadar(cityId) {
+  const c = US_CITIES[cityId];
+  const f = US_CITY_FEELS[cityId];
+  if (!c || !f) return null;
+
+  const afterTaxIncome = c.medianHouseholdIncome * (1 - f.effectiveTaxRate);
+  const afterTaxPower = clamp((afterTaxIncome / 65000) * 70, 0, 150);
+
+  const sqftPerDollar = f.median2brSqft / c.rent2br;
+  // National average 2BR ≈ 1050 sqft / $1640 = 0.64 → land at 60.
+  const housingValue = clamp((sqftPerDollar / 0.64) * 60);
+
+  const cultural = clamp(f.restaurantsPer1k * 20);
+  const greenSpace = clamp(f.parkScore);
+
+  // Job market composite. Each component already ~0-100 friendly:
+  //   unemploymentScore: 2% → 100, 6% → 20, 8% → 0
+  //   growthScore: -2% → 0, 0% → 50, 3% → 95
+  //   lfpScore: linearly 60% → 0, 90% → 100
+  const unemploymentScore = clamp(100 - (f.unemploymentRate - 2) * 20);
+  const growthScore = clamp(50 + f.jobGrowth1y * 15);
+  const lfpScore = clamp((f.lfpRate - 60) * (100 / 30));
+  const jobMarket = clamp((unemploymentScore + growthScore + lfpScore) / 3);
+
+  const climateComfort = clamp(f.pctComfortDays * 1.4);
+
+  return {
+    afterTaxPower,
+    housingValue,
+    cultural,
+    greenSpace,
+    jobMarket,
+    climateComfort
+  };
+}
+
+// All cities with feels-like data, ranked by a composite "feels-like" score
+// (mean of the six radar axes). Useful for the ranking table fallback.
+export function rankFeelsLike({ order = 'desc' } = {}) {
+  return Object.keys(US_CITY_FEELS)
+    .map(id => {
+      const r = feelsLikeRadar(id);
+      const c = US_CITIES[id];
+      const score = r ? (r.afterTaxPower + r.housingValue + r.cultural +
+                         r.greenSpace + r.jobMarket + r.climateComfort) / 6 : 0;
+      return { id, name: c.name, state: c.state, radar: r, score };
+    })
+    .sort((a, b) => (a.score - b.score) * (order === 'asc' ? 1 : -1));
+}
+
 // Search: prefix/substring match against city/state name OR country name/code.
 // Returns up to `limit` results with kind ('us' | 'country') for the suggester.
 export function searchPlaces(query, { limit = 10 } = {}) {
@@ -212,4 +326,4 @@ export function searchPlaces(query, { limit = 10 } = {}) {
   return out.slice(0, limit);
 }
 
-export { DATA_SOURCE, US_CITIES, COUNTRIES, NATIONAL_LIVING_WAGE_SINGLE, NATIONAL_MEDIAN_WAGE, NATIONAL_RENT_2BR };
+export { DATA_SOURCE, US_CITIES, COUNTRIES, US_CITY_FEELS, NATIONAL_LIVING_WAGE_SINGLE, NATIONAL_MEDIAN_WAGE, NATIONAL_RENT_2BR };

@@ -128,6 +128,30 @@
 
     .stats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
     @media (min-width: 560px) { .stats { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+    .feels-cards {
+      display: grid; grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px; margin: 0.5rem 0 1rem;
+    }
+    @media (min-width: 560px) { .feels-cards { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+    .rent-compare {
+      background: var(--card); border-radius: 12px; padding: 1rem 1.1rem;
+      margin: 0 0 1rem;
+    }
+    .rent-compare-title { font-size: 13px; font-weight: 600; color: var(--fg); margin: 0 0 0.6rem; }
+    .rent-compare-grid {
+      display: grid; grid-template-columns: 110px 1fr; align-items: center;
+      gap: 8px 12px; margin-bottom: 0.5rem;
+    }
+    .rent-compare-grid label { font-size: 12px; color: var(--muted); }
+    .rent-compare-grid input,
+    .rent-compare-grid select {
+      background: var(--bg); border: 0.5px solid var(--border); border-radius: 8px;
+      padding: 0 10px; height: 34px; font-size: 13px; color: var(--fg);
+      outline: none; min-width: 0; font-family: inherit;
+    }
+    .rent-compare-out { font-size: 14px; line-height: 1.5; margin: 0.4rem 0 0; color: var(--fg); }
+    .rent-compare-out strong { color: var(--accent); font-weight: 600; }
+    .rent-compare-out em { font-style: normal; color: var(--g-accent); font-weight: 600; }
     .stat-card {
       background: var(--bg); border: 0.5px solid var(--border-soft);
       border-radius: 8px; padding: 0.7rem 0.85rem; min-width: 0;
@@ -345,6 +369,28 @@
     <p style="font-size:11px;color:var(--dim);margin:8px 0 0;" id="radar-note">Six-axis radar: selected place (blue) vs. peer-group median (orange). Higher is better on every axis. Affordability inverts cost; safety inverts crime.</p>
   </details>
 
+  <details class="collapsible" id="feels-details">
+    <summary><span>Feels-like radar (US cities)</span></summary>
+
+    <div class="feels-cards" id="feels-cards"></div>
+
+    <div class="rent-compare" id="rent-compare" hidden>
+      <p class="rent-compare-title">What your rent buys</p>
+      <div class="rent-compare-grid">
+        <label for="rent-compare-budget">Monthly budget</label>
+        <input type="number" id="rent-compare-budget" min="500" step="100" value="3000" />
+        <label for="rent-compare-other">vs.</label>
+        <select id="rent-compare-other" aria-label="Compare housing space against another US city"></select>
+      </div>
+      <p class="rent-compare-out" id="rent-compare-out"></p>
+    </div>
+
+    <div class="chart-wrap">
+      <canvas id="feels-radar" role="img" aria-label="Feels-like radar chart"></canvas>
+    </div>
+    <p style="font-size:11px;color:var(--dim);margin:8px 0 0;" id="feels-note">After-tax purchasing power · housing space per rent dollar · cultural density · parks &amp; green space · job market · climate comfort. Higher is better on every axis.</p>
+  </details>
+
   <details class="collapsible" id="ranking-details">
     <summary><span>All places, ranked</span></summary>
     <div class="chart-controls" style="display:flex;flex-wrap:wrap;gap:6px;margin:0.5rem 0;align-items:center;">
@@ -387,6 +433,27 @@
     </details>
 
     <details itemscope itemprop="mainEntity" itemtype="https://schema.org/Question">
+      <summary itemprop="name">What's the "feels-like" radar measuring?</summary>
+      <div itemscope itemprop="acceptedAnswer" itemtype="https://schema.org/Answer">
+        <p itemprop="text">Six axes that capture lived experience beyond raw cost: <strong>after-tax purchasing power</strong> (median household income minus state+local income tax, vs. the national household median), <strong>housing space</strong> (square footage per dollar of monthly rent — same budget rents very different homes in SF vs. Sacramento), <strong>cultural density</strong> (restaurants and arts/entertainment establishments per 1,000 residents), <strong>parks &amp; green space</strong> (Trust for Public Land's ParkScore), <strong>job market</strong> (a composite of unemployment, 1-year job growth, and labor-force participation), and <strong>climate comfort</strong> (% of days with mean temp 50–80°F, from NOAA NCEI normals). Each axis is normalized 0–100, higher is better, with the 40-city peer median overlaid in green for context.</p>
+      </div>
+    </details>
+
+    <details itemscope itemprop="mainEntity" itemtype="https://schema.org/Question">
+      <summary itemprop="name">How is "take-home" calculated?</summary>
+      <div itemscope itemprop="acceptedAnswer" itemtype="https://schema.org/Answer">
+        <p itemprop="text">Take-home subtracts an estimated state + average local income tax from your input salary. Federal tax is deliberately excluded because federal rates don't change between metros — including them would just inflate every number by the same amount and obscure the local difference. The state effective rate uses the rate paid by the local median earner (sourced from Tax Foundation tables), which approximates a typical worker within ~1pp. For high-tax states with city-level taxes (NYC, Philadelphia, Detroit, Baltimore), the city portion is included.</p>
+      </div>
+    </details>
+
+    <details itemscope itemprop="mainEntity" itemtype="https://schema.org/Question">
+      <summary itemprop="name">"What your rent buys" — how does the sqft estimate work?</summary>
+      <div itemscope itemprop="acceptedAnswer" itemtype="https://schema.org/Answer">
+        <p itemprop="text">It uses each metro's typical 2-bedroom rental as a price-per-sqft benchmark (HUD FMR rent ÷ Zillow/HUD median 2BR sqft) and projects that rate onto your monthly budget. So $3,000/month in San Francisco is about 800–900 square feet (roughly a 1BR or small 2BR), while the same $3,000/month in Memphis or Oklahoma City rents 2,000+ square feet (a comfortable 3-4BR). Real listings vary, but the order-of-magnitude difference is real and consistent with what you'd find on Zillow, Redfin, or Apartments.com on any given week.</p>
+      </div>
+    </details>
+
+    <details itemscope itemprop="mainEntity" itemtype="https://schema.org/Question">
       <summary itemprop="name">Why only 40 US cities — what about my town?</summary>
       <div itemscope itemprop="acceptedAnswer" itemtype="https://schema.org/Answer">
         <p itemprop="text">v1 ships with the 10 cities from Visual Capitalist's "comfortable salary" report plus 30 of the largest US metros. Adding all 3,144 US counties (the MIT Living Wage scope) is on the roadmap and well-supported by the data layer — once the dataset is integrated, every county will get the same dashboard treatment.</p>
@@ -413,11 +480,12 @@
   <script type="module">
     import {
       resolvePlace, summarizeCity, summarizeCountry, rankUsCities, rankCountries,
-      affordabilityGauge, US_CITIES, COUNTRIES
+      affordabilityGauge, feelsLikeRadar, takeHome, sqftAtBudget, housingComparison,
+      US_CITIES, COUNTRIES, US_CITY_FEELS
     } from './cost.js';
 
-    const DEFAULTS = { p: 'nyc', s: '', r: 'us', a: 1, k: 0 };
-    const state = { p: DEFAULTS.p, s: DEFAULTS.s, r: DEFAULTS.r, a: DEFAULTS.a, k: DEFAULTS.k, embed: false, theme: null };
+    const DEFAULTS = { p: 'nyc', s: '', r: 'us', a: 1, k: 0, vs: 'memphis', rb: 3000 };
+    const state = { p: DEFAULTS.p, s: DEFAULTS.s, r: DEFAULTS.r, a: DEFAULTS.a, k: DEFAULTS.k, vs: DEFAULTS.vs, rb: DEFAULTS.rb, embed: false, theme: null };
 
     function householdMultiplier(a, k) {
       const ad = Math.max(1, Math.floor(a || 1));
@@ -464,6 +532,10 @@
       if (isFinite(a) && a >= 1 && a <= 3) state.a = a;
       const k = parseInt(q.get('k'), 10);
       if (isFinite(k) && k >= 0 && k <= 4) state.k = k;
+      const vs = q.get('vs');
+      if (vs && US_CITY_FEELS[vs]) state.vs = vs;
+      const rb = parseInt(q.get('rb'), 10);
+      if (isFinite(rb) && rb >= 500 && rb <= 20000) state.rb = rb;
       state.embed = q.get('embed') === '1';
       const themeQ = q.get('theme');
       if (themeQ === 'light' || themeQ === 'dark') state.theme = themeQ;
@@ -476,6 +548,8 @@
       if (state.r !== DEFAULTS.r) q.set('r', state.r);
       if (state.a !== DEFAULTS.a) q.set('a', state.a);
       if (state.k !== DEFAULTS.k) q.set('k', state.k);
+      if (state.vs !== DEFAULTS.vs) q.set('vs', state.vs);
+      if (state.rb !== DEFAULTS.rb) q.set('rb', state.rb);
       if (state.theme) q.set('theme', state.theme);
       if (includeEmbed) q.set('embed', '1');
       return q.toString();
@@ -499,6 +573,12 @@
       $('#place').innerHTML =
         `<optgroup label="US cities">${cityOpts}</optgroup>` +
         `<optgroup label="Countries">${countryOpts}</optgroup>`;
+      // Rent-compare list shows only US cities that have feels-like data.
+      const compareOpts = Object.values(US_CITIES)
+        .filter(c => US_CITY_FEELS[c.id])
+        .sort((a, b) => a.name.localeCompare(b.name))
+        .map(c => `<option value="${c.id}">${c.name}, ${c.state}</option>`).join('');
+      $('#rent-compare-other').innerHTML = compareOpts;
     }
 
     function applyToInputs() {
@@ -509,6 +589,15 @@
       const place = resolvePlace(state.p);
       const householdRow = $('#household-row');
       if (householdRow) householdRow.style.display = place && place.kind === 'us' ? '' : 'none';
+      const feelsDetails = $('#feels-details');
+      if (feelsDetails) feelsDetails.style.display = place && place.kind === 'us' && US_CITY_FEELS[state.p] ? '' : 'none';
+      // Default the "vs" city to a sensible counterpoint if it matches the
+      // primary place (so the rent-compare card never compares a city to itself).
+      if (state.vs === state.p) state.vs = state.p === 'memphis' ? 'san_franc' : 'memphis';
+      const rentOther = $('#rent-compare-other');
+      if (rentOther) rentOther.value = state.vs;
+      const rentBudget = $('#rent-compare-budget');
+      if (rentBudget) rentBudget.value = String(state.rb);
       $$('.rank-chip').forEach(c => c.classList.toggle('active', c.dataset.rank === state.r));
     }
 
@@ -715,6 +804,116 @@
       }
     }
 
+    let feelsChart;
+    const FEELS_KEYS = ['afterTaxPower', 'housingValue', 'cultural', 'greenSpace', 'jobMarket', 'climateComfort'];
+    const FEELS_LABELS = ['After-tax\npower', 'Housing\nspace', 'Cultural\ndensity', 'Parks &\ngreen', 'Job\nmarket', 'Climate\ncomfort'];
+
+    function renderFeelsCards() {
+      const place = resolvePlace(state.p);
+      const wrap = $('#feels-cards');
+      if (!wrap) return;
+      if (!place || place.kind !== 'us' || !US_CITY_FEELS[state.p]) {
+        wrap.innerHTML = '';
+        return;
+      }
+      const c = US_CITIES[state.p];
+      const f = US_CITY_FEELS[state.p];
+      const userS = parseFloat(state.s);
+      const cards = [];
+      if (isFinite(userS) && userS > 0) {
+        const th = takeHome(state.p, userS);
+        const taxBill = userS - th;
+        cards.push(card(
+          'Take-home',
+          fmtMoney(th, { compact: true }),
+          taxBill > 0 ? `state/local tax ≈ ${fmtMoney(taxBill, { compact: true })}` : 'no state income tax',
+          'good'
+        ));
+      } else {
+        cards.push(card(
+          'State+local tax',
+          fmtPct(f.effectiveTaxRate * 100, 1),
+          'effective rate at local median'
+        ));
+      }
+      cards.push(card('Park score', fmtNum(f.parkScore, 0) + ' / 100', 'Trust for Public Land 2024'));
+      cards.push(card('Job growth (1y)', fmtPct(f.jobGrowth1y, 1), `unemployment ${fmtPct(f.unemploymentRate, 1)} · LFP ${fmtPct(f.lfpRate, 0)}`));
+      cards.push(card('Climate comfort', fmtPct(f.pctComfortDays, 0), 'days 50–80°F (NOAA)'));
+      wrap.innerHTML = cards.join('');
+    }
+
+    function renderRentCompare() {
+      const place = resolvePlace(state.p);
+      const wrap = $('#rent-compare');
+      if (!wrap) return;
+      if (!place || place.kind !== 'us' || !US_CITY_FEELS[state.p]) {
+        wrap.hidden = true;
+        return;
+      }
+      wrap.hidden = false;
+      const cmp = housingComparison(state.p, state.vs, state.rb);
+      const out = $('#rent-compare-out');
+      if (!cmp) { out.textContent = 'Comparison unavailable.'; return; }
+      const ratio = cmp.a > 0 ? cmp.b.sqft / cmp.a.sqft : 0;
+      const better = cmp.delta > 0
+        ? `<em>${cmp.b.name}</em> gets you ${ratio.toFixed(1)}× the space.`
+        : cmp.delta < 0
+        ? `<em>${cmp.a.name}</em> gets you ${(cmp.a.sqft / cmp.b.sqft).toFixed(1)}× the space.`
+        : 'Both cities get you the same space.';
+      out.innerHTML =
+        `<strong>${fmtMoney(cmp.monthlyBudget, { compact: true })}/mo</strong> rents about ` +
+        `<strong>${cmp.a.sqft} sqft</strong> in ${cmp.a.name}, ` +
+        `vs. <strong>${cmp.b.sqft} sqft</strong> in ${cmp.b.name}. ` +
+        better;
+    }
+
+    function renderFeelsRadar() {
+      const place = resolvePlace(state.p);
+      const ctx = document.getElementById('feels-radar');
+      if (!ctx) return;
+      if (!place || place.kind !== 'us' || !US_CITY_FEELS[state.p]) {
+        if (feelsChart) { feelsChart.destroy(); feelsChart = null; }
+        return;
+      }
+      const radar = feelsLikeRadar(state.p);
+      const c = US_CITIES[state.p];
+      const allRadars = Object.keys(US_CITY_FEELS)
+        .map(id => feelsLikeRadar(id))
+        .filter(Boolean);
+      const peer = FEELS_KEYS.map(k => median(allRadars.map(r => r[k])));
+      const selected = FEELS_KEYS.map(k => radar[k]);
+      const datasets = [
+        { label: `${c.name}, ${c.state}`, data: selected, borderColor: '#185FA5', backgroundColor: 'rgba(55,138,221,0.20)', fill: true, pointRadius: 3, borderWidth: 2 },
+        { label: 'US-cohort median', data: peer, borderColor: '#2A8755', backgroundColor: 'rgba(42,135,85,0.10)', fill: false, pointRadius: 2, borderWidth: 2, borderDash: [4, 4] }
+      ];
+      if (feelsChart) {
+        feelsChart.data.labels = FEELS_LABELS;
+        feelsChart.data.datasets = datasets;
+        feelsChart.update('none');
+      } else {
+        feelsChart = new Chart(ctx, {
+          type: 'radar',
+          data: { labels: FEELS_LABELS, datasets },
+          options: {
+            responsive: true, maintainAspectRatio: false,
+            plugins: {
+              legend: { position: 'bottom', labels: { font: { size: 11 } } },
+              tooltip: { callbacks: { label: (item) => `${item.dataset.label}: ${item.parsed.r.toFixed(0)}` } }
+            },
+            scales: {
+              r: {
+                min: 0, max: 140,
+                ticks: { font: { size: 9 }, stepSize: 35, color: '#888', backdropColor: 'transparent' },
+                pointLabels: { font: { size: 11 }, color: '#888' },
+                grid: { color: 'rgba(128,128,128,0.2)' },
+                angleLines: { color: 'rgba(128,128,128,0.2)' }
+              }
+            }
+          }
+        });
+      }
+    }
+
     let rankSort = { us: { by: 'comfortableSalary', order: 'asc' }, country: { by: 'numbeoIndex', order: 'desc' } };
 
     function renderRanking() {
@@ -808,6 +1007,9 @@
       renderStats();
       renderGauge();
       renderRadar();
+      renderFeelsCards();
+      renderRentCompare();
+      renderFeelsRadar();
       renderScenarioSummary();
       renderRanking();
       updateEmbedFooter();
@@ -834,6 +1036,17 @@
         const v = parseInt($('#children').value, 10);
         state.k = isFinite(v) && v >= 0 ? v : 0;
         recompute();
+      });
+      $('#rent-compare-budget').addEventListener('input', () => {
+        const v = parseInt($('#rent-compare-budget').value, 10);
+        state.rb = isFinite(v) && v >= 500 ? v : DEFAULTS.rb;
+        renderRentCompare();
+        syncUrl();
+      });
+      $('#rent-compare-other').addEventListener('change', () => {
+        state.vs = $('#rent-compare-other').value;
+        renderRentCompare();
+        syncUrl();
       });
       $$('.rank-chip').forEach(c => {
         c.addEventListener('click', () => {

@@ -55,6 +55,41 @@ export const DATA_SOURCE = {
     vintage: '2025',
     url: 'https://www.visualcapitalist.com/mapped-the-salary-needed-to-live-comfortably-in-u-s-cities/'
   },
+  taxFoundation: {
+    label: 'Tax Foundation — state + average local income tax effective rates',
+    vintage: '2025',
+    url: 'https://taxfoundation.org/data/all/state/state-income-tax-rates/'
+  },
+  tplParkScore: {
+    label: 'Trust for Public Land — ParkScore (top 100 US cities)',
+    vintage: '2024',
+    url: 'https://www.tpl.org/parkscore'
+  },
+  blsLaus: {
+    label: 'BLS LAUS — metro unemployment rate',
+    vintage: 'Mar 2026',
+    url: 'https://www.bls.gov/lau/'
+  },
+  blsCes: {
+    label: 'BLS CES — metro non-farm payroll YoY change',
+    vintage: 'Mar 2026',
+    url: 'https://www.bls.gov/sae/'
+  },
+  censusCbp: {
+    label: 'Census County Business Patterns — restaurants & arts establishments per 1k residents',
+    vintage: '2023',
+    url: 'https://www.census.gov/programs-surveys/cbp.html'
+  },
+  zillow: {
+    label: 'Zillow ZORI / ZHVI — typical 2BR square footage',
+    vintage: 'Q1 2026',
+    url: 'https://www.zillow.com/research/data/'
+  },
+  noaa: {
+    label: 'NOAA NCEI — % of days with mean temp 50–80°F (1991–2020 normals)',
+    vintage: '1991–2020 normals',
+    url: 'https://www.ncei.noaa.gov/products/land-based-station/us-climate-normals'
+  },
   lastUpdated: '2026-04-25'
 };
 
@@ -167,4 +202,78 @@ export const COUNTRIES = {
   ES: { code: 'ES', name: 'Spain',          numbeoIndex: 187.20, ceoScore: 90.37, avgSalary: 35000, lifeExpectancy: 83.3, safety: 67.5, health: 72.5, purchasingPower:  64.0, pollutionCleanness: 72.0, climate: 95.0, costOfLiving: 50.0, propertyAffordability: 40.0, trafficCommute: 70.0 },
   SI: { code: 'SI', name: 'Slovenia',       numbeoIndex: 182.40, ceoScore: 92.40, avgSalary: 35000, lifeExpectancy: 81.5, safety: 78.5, health: 60.0, purchasingPower:  60.0, pollutionCleanness: 78.0, climate: 78.0, costOfLiving: 49.5, propertyAffordability: 35.0, trafficCommute: 80.0 },
   HR: { code: 'HR', name: 'Croatia',        numbeoIndex: 181.70, ceoScore: 87.47, avgSalary: 25000, lifeExpectancy: 78.5, safety: 75.0, health: 60.0, purchasingPower:  53.0, pollutionCleanness: 70.0, climate: 88.0, costOfLiving: 47.0, propertyAffordability: 30.0, trafficCommute: 75.0 }
+};
+
+// ─── Feels-like layer (US cities only, v1) ──────────────────────────────────
+//
+// Each entry adds the lived-experience inputs we use for the second radar:
+//
+//   effectiveTaxRate    Combined state + average local income tax, effective
+//                       rate at the local median household earner. (Tax
+//                       Foundation 2025 + state DoR resources.)
+//                       0.00 means no state income tax.
+//   salesTax            Combined state + average local general sales tax.
+//   parkScore           Trust for Public Land ParkScore 2024 (0–100). For
+//                       cities outside TPL's top 100, value is interpolated
+//                       from the surrounding metro / county-level public-land
+//                       share — flagged via parkScoreEstimated: true.
+//   restaurantsPer1k    Restaurants + arts/entertainment establishments per
+//                       1,000 residents (Census CBP 2023). A density proxy
+//                       for "things to do" — not a quality score.
+//   unemploymentRate    BLS LAUS most-recent metro unemployment, percent.
+//   jobGrowth1y         BLS CES non-farm payroll YoY change, percent.
+//   lfpRate             BLS / Census ACS labor force participation 25–54, %.
+//   median2brSqft       Typical 2BR rental square footage in the metro
+//                       (Zillow + HUD FMR housing characteristics tables).
+//   pctComfortDays      NOAA NCEI normals: % of days with mean temp 50–80°F
+//                       across the year (the "feels like spring/fall" zone).
+//
+// Values are 2024–2026 snapshots. Refresh script: scripts/refresh-data.py
+// (each source has its own --source flag; see that file for the full list).
+export const US_CITY_FEELS = {
+  // Top 10 (Visual Capitalist comfort cohort)
+  nyc:        { effectiveTaxRate: 0.095, salesTax: 0.0888, parkScore: 75, restaurantsPer1k: 4.4, unemploymentRate: 4.6, jobGrowth1y: 1.6, lfpRate: 79.5, median2brSqft:  840, pctComfortDays: 36 },
+  san_jose:   { effectiveTaxRate: 0.066, salesTax: 0.0938, parkScore: 47, restaurantsPer1k: 3.5, unemploymentRate: 4.1, jobGrowth1y: 0.4, lfpRate: 81.4, median2brSqft: 1015, pctComfortDays: 70 },
+  irvine:     { effectiveTaxRate: 0.064, salesTax: 0.0775, parkScore: 56, restaurantsPer1k: 3.8, unemploymentRate: 4.2, jobGrowth1y: 1.1, lfpRate: 81.0, median2brSqft: 1050, pctComfortDays: 68, parkScoreEstimated: true },
+  boston:     { effectiveTaxRate: 0.050, salesTax: 0.0625, parkScore: 73, restaurantsPer1k: 3.7, unemploymentRate: 3.7, jobGrowth1y: 1.2, lfpRate: 83.0, median2brSqft:  900, pctComfortDays: 42 },
+  san_diego:  { effectiveTaxRate: 0.063, salesTax: 0.0775, parkScore: 51, restaurantsPer1k: 3.6, unemploymentRate: 4.5, jobGrowth1y: 0.8, lfpRate: 79.7, median2brSqft: 1010, pctComfortDays: 75 },
+  san_franc:  { effectiveTaxRate: 0.072, salesTax: 0.0863, parkScore: 73, restaurantsPer1k: 4.2, unemploymentRate: 4.0, jobGrowth1y: 0.2, lfpRate: 82.1, median2brSqft:  925, pctComfortDays: 71 },
+  oakland:    { effectiveTaxRate: 0.066, salesTax: 0.1025, parkScore: 65, restaurantsPer1k: 3.5, unemploymentRate: 4.6, jobGrowth1y: 0.5, lfpRate: 80.9, median2brSqft: 1010, pctComfortDays: 70 },
+  honolulu:   { effectiveTaxRate: 0.078, salesTax: 0.045,  parkScore: 60, restaurantsPer1k: 3.9, unemploymentRate: 3.0, jobGrowth1y: 1.0, lfpRate: 78.2, median2brSqft:  900, pctComfortDays: 23 },
+  seattle:    { effectiveTaxRate: 0.000, salesTax: 0.1035, parkScore: 73, restaurantsPer1k: 4.0, unemploymentRate: 4.2, jobGrowth1y: 0.9, lfpRate: 81.5, median2brSqft:  990, pctComfortDays: 49 },
+  jersey_cty: { effectiveTaxRate: 0.052, salesTax: 0.06625,parkScore: 60, restaurantsPer1k: 3.8, unemploymentRate: 4.5, jobGrowth1y: 1.4, lfpRate: 81.0, median2brSqft:  870, pctComfortDays: 38 },
+
+  // 30 popular US metros
+  los_angeles:{ effectiveTaxRate: 0.067, salesTax: 0.095,  parkScore: 53, restaurantsPer1k: 3.7, unemploymentRate: 5.2, jobGrowth1y: 0.4, lfpRate: 78.9, median2brSqft:  950, pctComfortDays: 67 },
+  chicago:    { effectiveTaxRate: 0.05,  salesTax: 0.1025, parkScore: 64, restaurantsPer1k: 3.3, unemploymentRate: 4.7, jobGrowth1y: 0.6, lfpRate: 80.1, median2brSqft: 1020, pctComfortDays: 41 },
+  washington: { effectiveTaxRate: 0.075, salesTax: 0.06,   parkScore: 85, restaurantsPer1k: 4.0, unemploymentRate: 3.5, jobGrowth1y: 0.8, lfpRate: 84.0, median2brSqft:  945, pctComfortDays: 47 },
+  miami:      { effectiveTaxRate: 0.000, salesTax: 0.07,   parkScore: 38, restaurantsPer1k: 3.5, unemploymentRate: 3.4, jobGrowth1y: 2.4, lfpRate: 78.5, median2brSqft: 1010, pctComfortDays: 42 },
+  atlanta:    { effectiveTaxRate: 0.054, salesTax: 0.089,  parkScore: 50, restaurantsPer1k: 3.2, unemploymentRate: 3.7, jobGrowth1y: 1.5, lfpRate: 81.5, median2brSqft: 1100, pctComfortDays: 49 },
+  dallas:     { effectiveTaxRate: 0.000, salesTax: 0.0825, parkScore: 32, restaurantsPer1k: 2.9, unemploymentRate: 3.8, jobGrowth1y: 2.6, lfpRate: 81.3, median2brSqft: 1060, pctComfortDays: 46 },
+  houston:    { effectiveTaxRate: 0.000, salesTax: 0.0825, parkScore: 38, restaurantsPer1k: 2.7, unemploymentRate: 4.1, jobGrowth1y: 2.3, lfpRate: 80.5, median2brSqft: 1080, pctComfortDays: 39 },
+  austin:     { effectiveTaxRate: 0.000, salesTax: 0.0825, parkScore: 51, restaurantsPer1k: 3.4, unemploymentRate: 3.5, jobGrowth1y: 3.0, lfpRate: 82.2, median2brSqft: 1075, pctComfortDays: 47 },
+  denver:     { effectiveTaxRate: 0.044, salesTax: 0.0881, parkScore: 65, restaurantsPer1k: 3.1, unemploymentRate: 3.9, jobGrowth1y: 1.4, lfpRate: 82.0, median2brSqft: 1050, pctComfortDays: 50 },
+  phoenix:    { effectiveTaxRate: 0.025, salesTax: 0.082,  parkScore: 32, restaurantsPer1k: 2.7, unemploymentRate: 3.6, jobGrowth1y: 2.5, lfpRate: 79.0, median2brSqft: 1080, pctComfortDays: 34 },
+  las_vegas:  { effectiveTaxRate: 0.000, salesTax: 0.0838, parkScore: 35, restaurantsPer1k: 3.0, unemploymentRate: 5.4, jobGrowth1y: 1.8, lfpRate: 76.0, median2brSqft: 1050, pctComfortDays: 38 },
+  portland:   { effectiveTaxRate: 0.099, salesTax: 0.000,  parkScore: 72, restaurantsPer1k: 3.6, unemploymentRate: 4.1, jobGrowth1y: 0.6, lfpRate: 81.3, median2brSqft: 1010, pctComfortDays: 53 },
+  philadelphia:{ effectiveTaxRate:0.068, salesTax: 0.08,   parkScore: 70, restaurantsPer1k: 3.1, unemploymentRate: 4.4, jobGrowth1y: 0.9, lfpRate: 79.4, median2brSqft: 1020, pctComfortDays: 44 },
+  minneapolis:{ effectiveTaxRate: 0.071, salesTax: 0.0888, parkScore: 83, restaurantsPer1k: 3.0, unemploymentRate: 3.4, jobGrowth1y: 0.7, lfpRate: 84.5, median2brSqft: 1080, pctComfortDays: 36 },
+  detroit:    { effectiveTaxRate: 0.057, salesTax: 0.06,   parkScore: 47, restaurantsPer1k: 2.6, unemploymentRate: 5.2, jobGrowth1y: 0.0, lfpRate: 75.5, median2brSqft: 1100, pctComfortDays: 38 },
+  charlotte:  { effectiveTaxRate: 0.0425,salesTax: 0.0725, parkScore: 30, restaurantsPer1k: 2.9, unemploymentRate: 3.8, jobGrowth1y: 1.9, lfpRate: 80.7, median2brSqft: 1100, pctComfortDays: 51 },
+  orlando:    { effectiveTaxRate: 0.000, salesTax: 0.065,  parkScore: 35, restaurantsPer1k: 3.1, unemploymentRate: 3.5, jobGrowth1y: 2.2, lfpRate: 78.0, median2brSqft: 1090, pctComfortDays: 41 },
+  tampa:      { effectiveTaxRate: 0.000, salesTax: 0.075,  parkScore: 38, restaurantsPer1k: 2.8, unemploymentRate: 3.3, jobGrowth1y: 2.5, lfpRate: 78.5, median2brSqft: 1080, pctComfortDays: 41 },
+  pittsburgh: { effectiveTaxRate: 0.069, salesTax: 0.07,   parkScore: 70, restaurantsPer1k: 2.9, unemploymentRate: 4.1, jobGrowth1y: 0.4, lfpRate: 78.5, median2brSqft: 1060, pctComfortDays: 42 },
+  st_louis:   { effectiveTaxRate: 0.058, salesTax: 0.0974, parkScore: 67, restaurantsPer1k: 2.8, unemploymentRate: 3.9, jobGrowth1y: 0.5, lfpRate: 79.0, median2brSqft: 1110, pctComfortDays: 44 },
+  baltimore:  { effectiveTaxRate: 0.082, salesTax: 0.06,   parkScore: 60, restaurantsPer1k: 2.7, unemploymentRate: 3.7, jobGrowth1y: 0.3, lfpRate: 79.5, median2brSqft: 1040, pctComfortDays: 46 },
+  cincinnati: { effectiveTaxRate: 0.057, salesTax: 0.075,  parkScore: 75, restaurantsPer1k: 2.9, unemploymentRate: 4.2, jobGrowth1y: 0.6, lfpRate: 79.0, median2brSqft: 1080, pctComfortDays: 43 },
+  cleveland:  { effectiveTaxRate: 0.057, salesTax: 0.08,   parkScore: 53, restaurantsPer1k: 2.7, unemploymentRate: 4.6, jobGrowth1y: 0.0, lfpRate: 76.5, median2brSqft: 1075, pctComfortDays: 41 },
+  kansas_city:{ effectiveTaxRate: 0.058, salesTax: 0.0863, parkScore: 47, restaurantsPer1k: 2.8, unemploymentRate: 3.6, jobGrowth1y: 1.0, lfpRate: 80.5, median2brSqft: 1100, pctComfortDays: 43 },
+  indianapolis:{ effectiveTaxRate:0.052, salesTax: 0.07,   parkScore: 35, restaurantsPer1k: 2.6, unemploymentRate: 3.7, jobGrowth1y: 0.9, lfpRate: 80.0, median2brSqft: 1090, pctComfortDays: 43 },
+  columbus:   { effectiveTaxRate: 0.057, salesTax: 0.075,  parkScore: 50, restaurantsPer1k: 2.8, unemploymentRate: 3.7, jobGrowth1y: 1.3, lfpRate: 80.5, median2brSqft: 1075, pctComfortDays: 44 },
+  nashville:  { effectiveTaxRate: 0.000, salesTax: 0.0925, parkScore: 35, restaurantsPer1k: 3.2, unemploymentRate: 3.0, jobGrowth1y: 2.8, lfpRate: 80.7, median2brSqft: 1080, pctComfortDays: 45 },
+  raleigh:    { effectiveTaxRate: 0.0425,salesTax: 0.0725, parkScore: 38, restaurantsPer1k: 2.7, unemploymentRate: 3.4, jobGrowth1y: 1.8, lfpRate: 81.5, median2brSqft: 1110, pctComfortDays: 51 },
+  salt_lake:  { effectiveTaxRate: 0.0455,salesTax: 0.0775, parkScore: 50, restaurantsPer1k: 3.0, unemploymentRate: 2.6, jobGrowth1y: 2.2, lfpRate: 84.5, median2brSqft: 1100, pctComfortDays: 41 },
+  albuquerque:{ effectiveTaxRate: 0.049, salesTax: 0.0775, parkScore: 36, restaurantsPer1k: 2.7, unemploymentRate: 3.9, jobGrowth1y: 0.6, lfpRate: 76.0, median2brSqft: 1050, pctComfortDays: 50 },
+  oklahoma_cy:{ effectiveTaxRate: 0.0475,salesTax: 0.0863, parkScore: 28, restaurantsPer1k: 2.5, unemploymentRate: 3.5, jobGrowth1y: 1.4, lfpRate: 78.0, median2brSqft: 1075, pctComfortDays: 45 },
+  memphis:    { effectiveTaxRate: 0.000, salesTax: 0.0975, parkScore: 33, restaurantsPer1k: 2.6, unemploymentRate: 4.5, jobGrowth1y: 0.3, lfpRate: 76.5, median2brSqft: 1080, pctComfortDays: 47 }
 };

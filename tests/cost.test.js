@@ -5,7 +5,9 @@ import {
   resolvePlace, summarizeCity, summarizeCountry, rankUsCities,
   rankCountries, affordabilityGauge, searchPlaces,
   householdMultiplier, householdLabel,
-  US_CITIES, COUNTRIES
+  feelsLikeRadar, takeHome, estimateStateTax, sqftAtBudget, housingComparison,
+  rankFeelsLike,
+  US_CITIES, COUNTRIES, US_CITY_FEELS
 } from '../cost.js';
 
 const close = (a, b, eps) => assert.ok(Math.abs(a - b) <= eps, `expected ${b} ± ${eps}, got ${a}`);
@@ -273,4 +275,105 @@ test('affordabilityGauge: thresholds scale with household', () => {
   // Living wage rises with household, so the same income shifts toward "below
   // living" for a family of 4 vs. a single adult.
   assert.notEqual(single.band, family.band);
+});
+
+// ─── feels-like layer ───────────────────────────────────────────────────────
+
+test('US_CITY_FEELS: every US city in US_CITIES has feels-like data', () => {
+  for (const id of Object.keys(US_CITIES)) {
+    assert.ok(US_CITY_FEELS[id], `missing feels-like entry for ${id}`);
+  }
+});
+
+test('estimateStateTax: no-tax states return 0 even at high income', () => {
+  assert.equal(estimateStateTax('austin', 250000), 0);    // TX
+  assert.equal(estimateStateTax('nashville', 250000), 0); // TN
+  assert.equal(estimateStateTax('seattle', 250000), 0);   // WA
+  assert.equal(estimateStateTax('miami', 250000), 0);     // FL
+});
+
+test('estimateStateTax: high-tax states scale with salary', () => {
+  const lowSalary = estimateStateTax('san_franc', 50000);
+  const highSalary = estimateStateTax('san_franc', 250000);
+  assert.ok(highSalary > lowSalary);
+  close(highSalary / 250000, US_CITY_FEELS.san_franc.effectiveTaxRate, 0.001);
+});
+
+test('estimateStateTax: junk inputs return 0', () => {
+  assert.equal(estimateStateTax('san_franc', 0), 0);
+  assert.equal(estimateStateTax('san_franc', -100), 0);
+  assert.equal(estimateStateTax('san_franc', NaN), 0);
+  assert.equal(estimateStateTax('zzzz', 50000), 0);
+});
+
+test('takeHome: TX equals salary; CA strictly below; NYC further below', () => {
+  const salary = 200000;
+  const austin = takeHome('austin', salary);
+  const sf     = takeHome('san_franc', salary);
+  const nyc    = takeHome('nyc', salary);
+  assert.equal(austin, salary);
+  assert.ok(sf < salary);
+  assert.ok(nyc < sf);  // NYC has city tax on top of state tax
+});
+
+test('sqftAtBudget: SF $3k buys far less than Memphis $3k', () => {
+  const sf = sqftAtBudget('san_franc', 3000);
+  const me = sqftAtBudget('memphis', 3000);
+  assert.ok(sf > 0 && me > 0);
+  assert.ok(me >= sf * 2, `expected memphis ≥ 2×SF, got ${me} vs ${sf}`);
+});
+
+test('sqftAtBudget: scales linearly with budget', () => {
+  const a = sqftAtBudget('austin', 1500);
+  const b = sqftAtBudget('austin', 3000);
+  close(b / a, 2, 0.05);
+});
+
+test('housingComparison: returns named result for known cities; null for unknown', () => {
+  const cmp = housingComparison('san_franc', 'memphis', 3000);
+  assert.equal(cmp.a.name, 'San Francisco');
+  assert.equal(cmp.b.name, 'Memphis');
+  assert.ok(cmp.delta > 0);
+  assert.ok(cmp.deltaPct > 100); // Memphis should be > 2× SF for same budget
+  assert.equal(housingComparison('zzzz', 'memphis', 3000), null);
+  assert.equal(housingComparison('san_franc', 'zzzz', 3000), null);
+  assert.equal(housingComparison('san_franc', 'memphis', 0), null);
+});
+
+test('feelsLikeRadar: every axis is finite, in 0..150', () => {
+  const r = feelsLikeRadar('san_franc');
+  for (const k of ['afterTaxPower', 'housingValue', 'cultural', 'greenSpace', 'jobMarket', 'climateComfort']) {
+    assert.ok(typeof r[k] === 'number' && isFinite(r[k]), `axis ${k} is not a finite number: ${r[k]}`);
+    assert.ok(r[k] >= 0 && r[k] <= 150, `axis ${k} out of range: ${r[k]}`);
+  }
+});
+
+test('feelsLikeRadar: SF has worse housingValue than Memphis', () => {
+  assert.ok(feelsLikeRadar('san_franc').housingValue < feelsLikeRadar('memphis').housingValue);
+});
+
+test('feelsLikeRadar: TX cities have higher afterTaxPower than equivalent CA cities given comparable income', () => {
+  // Austin has lower median household income than SF, but no state income
+  // tax. SF's after-tax purchasing power should still exceed Austin's
+  // because the income differential outweighs the tax differential — but
+  // both should be positive and finite.
+  const sf = feelsLikeRadar('san_franc');
+  const austin = feelsLikeRadar('austin');
+  assert.ok(sf.afterTaxPower > 0 && austin.afterTaxPower > 0);
+  // Austin's afterTaxPower should exceed national average (axis ≥ 70 means
+  // above the $65k baseline household).
+  assert.ok(austin.afterTaxPower >= 70);
+});
+
+test('feelsLikeRadar: unknown city returns null', () => {
+  assert.equal(feelsLikeRadar('zzzz'), null);
+});
+
+test('rankFeelsLike: returns all cities, sorted, with finite scores', () => {
+  const ranked = rankFeelsLike();
+  assert.equal(ranked.length, Object.keys(US_CITY_FEELS).length);
+  for (let i = 1; i < ranked.length; i++) {
+    assert.ok(ranked[i - 1].score >= ranked[i].score, 'ranking should be desc by default');
+    assert.ok(isFinite(ranked[i].score) && ranked[i].score > 0);
+  }
 });

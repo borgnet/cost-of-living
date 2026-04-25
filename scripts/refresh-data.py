@@ -98,6 +98,79 @@ SOURCES = [
         "vintage_note": "DATA_SOURCE.numbeo.vintage in data.js",
         "manual_url": "https://www.numbeo.com/quality-of-life/rankings_by_country.jsp",
     },
+    # ─── Feels-like layer (US_CITY_FEELS) ──────────────────────────────────
+    {
+        "id": "tax_foundation",
+        "label": "Tax Foundation — state + average local effective income tax",
+        "url": "https://taxfoundation.org/data/all/state/state-income-tax-rates/",
+        "key_env": None,  # public report, no API
+        "field_in_data_js": "US_CITY_FEELS[*].effectiveTaxRate, .salesTax",
+        "vintage_note": "DATA_SOURCE.taxFoundation.vintage in data.js",
+        "manual_url": "https://taxfoundation.org/data/all/state/state-income-tax-rates/",
+    },
+    {
+        "id": "tpl_park_score",
+        "label": "Trust for Public Land — ParkScore (top 100 US cities)",
+        "url": "https://www.tpl.org/parkscore",
+        "key_env": None,  # public dashboard, no API; manual table extract
+        "field_in_data_js": "US_CITY_FEELS[*].parkScore",
+        "vintage_note": "DATA_SOURCE.tplParkScore.vintage in data.js",
+        "manual_url": "https://www.tpl.org/parkscore",
+    },
+    {
+        "id": "bls_laus",
+        "label": "BLS LAUS — metro unemployment rate (most recent month)",
+        "url": "https://api.bls.gov/publicAPI/v2/timeseries/data/{seriesId}",
+        "key_env": "BLS_API_KEY",  # same key as OEWS works
+        "field_in_data_js": "US_CITY_FEELS[*].unemploymentRate",
+        "vintage_note": "DATA_SOURCE.blsLaus.vintage in data.js",
+        "manual_url": "https://www.bls.gov/lau/",
+    },
+    {
+        "id": "bls_ces",
+        "label": "BLS CES — metro non-farm payroll YoY change (job growth)",
+        "url": "https://api.bls.gov/publicAPI/v2/timeseries/data/{seriesId}",
+        "key_env": "BLS_API_KEY",
+        "field_in_data_js": "US_CITY_FEELS[*].jobGrowth1y",
+        "vintage_note": "DATA_SOURCE.blsCes.vintage in data.js",
+        "manual_url": "https://www.bls.gov/sae/",
+    },
+    {
+        "id": "census_lfp",
+        "label": "Census ACS 1-year — labor force participation rate, 25-54",
+        "url": "https://api.census.gov/data/{year}/acs/acs1?get=B23025_004E,B23025_002E&for=metropolitan%20statistical%20area/micropolitan%20statistical%20area:*&key={KEY}",
+        "key_env": "CENSUS_API_KEY",
+        "field_in_data_js": "US_CITY_FEELS[*].lfpRate",
+        "vintage_note": "DATA_SOURCE.acs.vintage in data.js",
+        "manual_url": "https://www.census.gov/programs-surveys/acs/data.html",
+    },
+    {
+        "id": "census_cbp",
+        "label": "Census County Business Patterns — restaurants + arts establishments per 1k residents",
+        "url": "https://api.census.gov/data/{year}/cbp?get=NAICS2017_LABEL,ESTAB&NAICS2017=722,71&for=county:*&key={KEY}",
+        "key_env": "CENSUS_API_KEY",
+        "field_in_data_js": "US_CITY_FEELS[*].restaurantsPer1k",
+        "vintage_note": "DATA_SOURCE.censusCbp.vintage in data.js",
+        "manual_url": "https://www.census.gov/programs-surveys/cbp.html",
+    },
+    {
+        "id": "zillow_sqft",
+        "label": "Zillow Research — typical 2BR rental square footage by metro",
+        "url": "https://www.zillow.com/research/data/",
+        "key_env": None,  # bulk CSVs, no auth required
+        "field_in_data_js": "US_CITY_FEELS[*].median2brSqft",
+        "vintage_note": "DATA_SOURCE.zillow.vintage in data.js",
+        "manual_url": "https://www.zillow.com/research/data/",
+    },
+    {
+        "id": "noaa_normals",
+        "label": "NOAA NCEI 1991-2020 climate normals — % days mean temp 50-80°F",
+        "url": "https://www.ncei.noaa.gov/data/normals-daily/1991-2020/access/",
+        "key_env": None,  # public bulk files
+        "field_in_data_js": "US_CITY_FEELS[*].pctComfortDays",
+        "vintage_note": "DATA_SOURCE.noaa.vintage in data.js",
+        "manual_url": "https://www.ncei.noaa.gov/products/land-based-station/us-climate-normals",
+    },
 ]
 
 
