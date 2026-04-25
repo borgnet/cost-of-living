@@ -5,9 +5,9 @@ import {
   resolvePlace, summarizeCity, summarizeCountry, rankUsCities,
   rankCountries, affordabilityGauge, searchPlaces,
   householdMultiplier, householdLabel,
-  feelsLikeRadar, takeHome, estimateStateTax, sqftAtBudget, housingComparison,
-  rankFeelsLike,
-  US_CITIES, COUNTRIES, US_CITY_FEELS
+  feelsLikeRadar, takeHome, estimateStateTax, sqftAtBudget, sqftAtBuyBudget,
+  housingComparison, rankFeelsLike,
+  US_CITIES, COUNTRIES, US_CITY_FEELS, US_CITY_BUY
 } from '../cost.js';
 
 const close = (a, b, eps) => assert.ok(Math.abs(a - b) <= eps, `expected ${b} ± ${eps}, got ${a}`);
@@ -329,15 +329,75 @@ test('sqftAtBudget: scales linearly with budget', () => {
   close(b / a, 2, 0.05);
 });
 
-test('housingComparison: returns named result for known cities; null for unknown', () => {
+test('housingComparison rent: returns named result for known cities; null for unknown', () => {
   const cmp = housingComparison('san_franc', 'memphis', 3000);
+  assert.equal(cmp.mode, 'rent');
   assert.equal(cmp.a.name, 'San Francisco');
   assert.equal(cmp.b.name, 'Memphis');
+  assert.equal(cmp.budget, 3000);
   assert.ok(cmp.delta > 0);
-  assert.ok(cmp.deltaPct > 100); // Memphis should be > 2× SF for same budget
+  assert.ok(cmp.deltaPct > 100); // Memphis > 2× SF for same monthly rent
   assert.equal(housingComparison('zzzz', 'memphis', 3000), null);
   assert.equal(housingComparison('san_franc', 'zzzz', 3000), null);
   assert.equal(housingComparison('san_franc', 'memphis', 0), null);
+});
+
+// ─── Buy layer ──────────────────────────────────────────────────────────────
+
+test('US_CITY_BUY: every city in US_CITIES has buy data', () => {
+  for (const id of Object.keys(US_CITIES)) {
+    assert.ok(US_CITY_BUY[id], `missing buy entry for ${id}`);
+  }
+});
+
+test('sqftAtBuyBudget: $800k SF buys far less than $800k Sacramento', () => {
+  const sf = sqftAtBuyBudget('san_franc', 800000);
+  const sac = sqftAtBuyBudget('sacramento', 800000);
+  assert.ok(sf > 0 && sac > 0);
+  assert.ok(sac >= sf * 2, `expected sac ≥ 2×SF, got ${sac} vs ${sf}`);
+});
+
+test('sqftAtBuyBudget: scales linearly with budget', () => {
+  const small = sqftAtBuyBudget('austin', 300000);
+  const big   = sqftAtBuyBudget('austin', 600000);
+  close(big / small, 2, 0.05);
+});
+
+test('sqftAtBuyBudget: junk inputs return 0', () => {
+  assert.equal(sqftAtBuyBudget('zzzz', 500000), 0);
+  assert.equal(sqftAtBuyBudget('san_franc', 0), 0);
+  assert.equal(sqftAtBuyBudget('san_franc', -100), 0);
+  assert.equal(sqftAtBuyBudget('san_franc', NaN), 0);
+});
+
+test('housingComparison buy: SF vs Sacramento at $800k matches Bruno\'s example', () => {
+  const cmp = housingComparison('san_franc', 'sacramento', 800000, { mode: 'buy' });
+  assert.equal(cmp.mode, 'buy');
+  assert.equal(cmp.budget, 800000);
+  assert.ok(cmp.b.sqft >= cmp.a.sqft * 2, 'Sacramento should give 2×+ space for same budget');
+});
+
+test('housingComparison buy: NYC vs Albany swings the right direction', () => {
+  const cmp = housingComparison('nyc', 'albany', 600000, { mode: 'buy' });
+  assert.ok(cmp.b.sqft > cmp.a.sqft, 'Albany sqft > NYC sqft for same purchase price');
+});
+
+// ─── Commuter / destination cohort ──────────────────────────────────────────
+
+test('Commuter cohort: all expected cities are present and have full coverage', () => {
+  const expected = ['sacramento', 'fresno', 'stockton', 'bakersfield', 'riverside',
+                    'reno', 'boise', 'spokane', 'tacoma', 'san_antonio', 'tucson',
+                    'colorado_spr', 'boulder', 'albany', 'providence', 'worcester',
+                    'richmond', 'jacksonville', 'ft_lauderdale', 'madison', 'milwaukee'];
+  for (const id of expected) {
+    assert.ok(US_CITIES[id], `missing US_CITIES[${id}]`);
+    assert.ok(US_CITY_FEELS[id], `missing US_CITY_FEELS[${id}]`);
+    assert.ok(US_CITY_BUY[id], `missing US_CITY_BUY[${id}]`);
+    const s = summarizeCity(id);
+    assert.ok(s && s.id === id);
+    const r = feelsLikeRadar(id);
+    assert.ok(r && isFinite(r.afterTaxPower));
+  }
 });
 
 test('feelsLikeRadar: every axis is finite, in 0..150', () => {

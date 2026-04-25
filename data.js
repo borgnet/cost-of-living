@@ -164,7 +164,34 @@ export const US_CITIES = {
   salt_lake:  { id: 'salt_lake',  name: 'Salt Lake City', state: 'UT', rpp:  98.0, medianWage: 56840,  medianHouseholdIncome: 84140,  rent2br: 1620, comfortableSalary: 93100,  lifeExpectancy: 79.3, crimeRate: 779, commuteMin: 22.5 },
   albuquerque:{ id: 'albuquerque',name: 'Albuquerque',    state: 'NM', rpp:  93.4, medianWage: 53320,  medianHouseholdIncome: 64340,  rent2br: 1330, comfortableSalary: 88730,  lifeExpectancy: 77.3, crimeRate: 1316,commuteMin: 22.9 },
   oklahoma_cy:{ id: 'oklahoma_cy',name: 'Oklahoma City',  state: 'OK', rpp:  90.4, medianWage: 51260,  medianHouseholdIncome: 68660,  rent2br: 1180, comfortableSalary: 85880,  lifeExpectancy: 76.5, crimeRate: 814, commuteMin: 22.5 },
-  memphis:    { id: 'memphis',    name: 'Memphis',        state: 'TN', rpp:  91.0, medianWage: 50300,  medianHouseholdIncome: 60060,  rent2br: 1340, comfortableSalary: 86450,  lifeExpectancy: 76.5, crimeRate: 2470,commuteMin: 26.0 }
+  memphis:    { id: 'memphis',    name: 'Memphis',        state: 'TN', rpp:  91.0, medianWage: 50300,  medianHouseholdIncome: 60060,  rent2br: 1340, comfortableSalary: 86450,  lifeExpectancy: 76.5, crimeRate: 2470,commuteMin: 26.0 },
+
+  // ─── Commuter / affordable-destination cities ────────────────────────────
+  // Cities people commonly relocate to from the tier-1 cohort above (Bay
+  // Area → Sacramento, NYC → Albany, Boston → Worcester, Seattle → Boise,
+  // Miami → Jacksonville, etc.) plus the metros they regularly include in
+  // job-search comparisons. Same federal data sources, RPP-anchored.
+  sacramento: { id: 'sacramento', name: 'Sacramento',     state: 'CA', rpp: 102.0, medianWage: 60110,  medianHouseholdIncome: 87837,  rent2br: 2050, comfortableSalary: 96900,  lifeExpectancy: 79.7, crimeRate: 525, commuteMin: 27.0 },
+  fresno:     { id: 'fresno',     name: 'Fresno',         state: 'CA', rpp:  92.0, medianWage: 49870,  medianHouseholdIncome: 64020,  rent2br: 1530, comfortableSalary: 87400,  lifeExpectancy: 78.7, crimeRate: 642, commuteMin: 23.5 },
+  stockton:   { id: 'stockton',   name: 'Stockton',       state: 'CA', rpp:  96.0, medianWage: 54620,  medianHouseholdIncome: 76015,  rent2br: 1730, comfortableSalary: 91200,  lifeExpectancy: 78.0, crimeRate: 1232,commuteMin: 33.0 },
+  bakersfield:{ id: 'bakersfield',name: 'Bakersfield',    state: 'CA', rpp:  93.0, medianWage: 53870,  medianHouseholdIncome: 70390,  rent2br: 1410, comfortableSalary: 88350,  lifeExpectancy: 77.0, crimeRate: 580, commuteMin: 24.0 },
+  riverside:  { id: 'riverside',  name: 'Riverside',      state: 'CA', rpp: 104.0, medianWage: 58020,  medianHouseholdIncome: 84500,  rent2br: 2050, comfortableSalary: 98800,  lifeExpectancy: 78.0, crimeRate: 405, commuteMin: 33.0 },
+  reno:       { id: 'reno',       name: 'Reno',           state: 'NV', rpp:  99.0, medianWage: 55620,  medianHouseholdIncome: 77828,  rent2br: 1830, comfortableSalary: 94050,  lifeExpectancy: 78.5, crimeRate: 419, commuteMin: 22.0 },
+  boise:      { id: 'boise',      name: 'Boise',          state: 'ID', rpp:  95.4, medianWage: 56050,  medianHouseholdIncome: 80375,  rent2br: 1620, comfortableSalary: 90630,  lifeExpectancy: 79.5, crimeRate: 232, commuteMin: 22.0 },
+  spokane:    { id: 'spokane',    name: 'Spokane',        state: 'WA', rpp:  93.5, medianWage: 53870,  medianHouseholdIncome: 71040,  rent2br: 1410, comfortableSalary: 88825,  lifeExpectancy: 79.0, crimeRate: 530, commuteMin: 22.0 },
+  tacoma:     { id: 'tacoma',     name: 'Tacoma',         state: 'WA', rpp: 106.0, medianWage: 64710,  medianHouseholdIncome: 85020,  rent2br: 1900, comfortableSalary: 100700, lifeExpectancy: 79.5, crimeRate: 614, commuteMin: 31.0 },
+  san_antonio:{ id: 'san_antonio',name: 'San Antonio',    state: 'TX', rpp:  95.0, medianWage: 51020,  medianHouseholdIncome: 64525,  rent2br: 1480, comfortableSalary: 90250,  lifeExpectancy: 78.5, crimeRate: 626, commuteMin: 26.0 },
+  tucson:     { id: 'tucson',     name: 'Tucson',         state: 'AZ', rpp:  95.0, medianWage: 51920,  medianHouseholdIncome: 63805,  rent2br: 1320, comfortableSalary: 90250,  lifeExpectancy: 79.0, crimeRate: 654, commuteMin: 24.0 },
+  colorado_spr:{ id: 'colorado_spr',name:'Colorado Springs',state: 'CO', rpp: 99.7, medianWage: 60040,  medianHouseholdIncome: 86018,  rent2br: 1730, comfortableSalary: 94715,  lifeExpectancy: 79.0, crimeRate: 421, commuteMin: 24.5 },
+  boulder:    { id: 'boulder',    name: 'Boulder',        state: 'CO', rpp: 110.0, medianWage: 70320,  medianHouseholdIncome: 99700,  rent2br: 2150, comfortableSalary: 104500, lifeExpectancy: 80.5, crimeRate: 261, commuteMin: 22.0 },
+  albany:     { id: 'albany',     name: 'Albany',         state: 'NY', rpp:  98.0, medianWage: 56020,  medianHouseholdIncome: 77840,  rent2br: 1480, comfortableSalary: 93100,  lifeExpectancy: 79.0, crimeRate: 462, commuteMin: 23.0 },
+  providence: { id: 'providence', name: 'Providence',     state: 'RI', rpp: 100.5, medianWage: 58220,  medianHouseholdIncome: 80250,  rent2br: 1840, comfortableSalary: 95475,  lifeExpectancy: 79.5, crimeRate: 397, commuteMin: 25.5 },
+  worcester:  { id: 'worcester',  name: 'Worcester',      state: 'MA', rpp:  99.0, medianWage: 60020,  medianHouseholdIncome: 84030,  rent2br: 1700, comfortableSalary: 94050,  lifeExpectancy: 79.5, crimeRate: 587, commuteMin: 28.0 },
+  richmond:   { id: 'richmond',   name: 'Richmond',       state: 'VA', rpp:  99.0, medianWage: 57220,  medianHouseholdIncome: 78010,  rent2br: 1620, comfortableSalary: 94050,  lifeExpectancy: 78.0, crimeRate: 506, commuteMin: 26.0 },
+  jacksonville:{ id: 'jacksonville',name:'Jacksonville',  state: 'FL', rpp:  95.0, medianWage: 52040,  medianHouseholdIncome: 73020,  rent2br: 1660, comfortableSalary: 90250,  lifeExpectancy: 78.0, crimeRate: 718, commuteMin: 26.5 },
+  ft_lauderdale:{ id: 'ft_lauderdale',name:'Fort Lauderdale',state:'FL', rpp:106.0,medianWage: 54320,  medianHouseholdIncome: 76200,  rent2br: 2270, comfortableSalary: 100700, lifeExpectancy: 80.0, crimeRate: 446, commuteMin: 27.0 },
+  madison:    { id: 'madison',    name: 'Madison',        state: 'WI', rpp:  96.0, medianWage: 60020,  medianHouseholdIncome: 87000,  rent2br: 1420, comfortableSalary: 91200,  lifeExpectancy: 80.5, crimeRate: 309, commuteMin: 22.0 },
+  milwaukee:  { id: 'milwaukee',  name: 'Milwaukee',      state: 'WI', rpp:  95.0, medianWage: 55020,  medianHouseholdIncome: 70030,  rent2br: 1290, comfortableSalary: 90250,  lifeExpectancy: 78.0, crimeRate: 1245,commuteMin: 23.0 }
 };
 
 // Top 20 countries by quality of life — Numbeo + CEO World indices,
@@ -275,5 +302,105 @@ export const US_CITY_FEELS = {
   salt_lake:  { effectiveTaxRate: 0.0455,salesTax: 0.0775, parkScore: 50, restaurantsPer1k: 3.0, unemploymentRate: 2.6, jobGrowth1y: 2.2, lfpRate: 84.5, median2brSqft: 1100, pctComfortDays: 41 },
   albuquerque:{ effectiveTaxRate: 0.049, salesTax: 0.0775, parkScore: 36, restaurantsPer1k: 2.7, unemploymentRate: 3.9, jobGrowth1y: 0.6, lfpRate: 76.0, median2brSqft: 1050, pctComfortDays: 50 },
   oklahoma_cy:{ effectiveTaxRate: 0.0475,salesTax: 0.0863, parkScore: 28, restaurantsPer1k: 2.5, unemploymentRate: 3.5, jobGrowth1y: 1.4, lfpRate: 78.0, median2brSqft: 1075, pctComfortDays: 45 },
-  memphis:    { effectiveTaxRate: 0.000, salesTax: 0.0975, parkScore: 33, restaurantsPer1k: 2.6, unemploymentRate: 4.5, jobGrowth1y: 0.3, lfpRate: 76.5, median2brSqft: 1080, pctComfortDays: 47 }
+  memphis:    { effectiveTaxRate: 0.000, salesTax: 0.0975, parkScore: 33, restaurantsPer1k: 2.6, unemploymentRate: 4.5, jobGrowth1y: 0.3, lfpRate: 76.5, median2brSqft: 1080, pctComfortDays: 47 },
+
+  // Commuter / affordable-destination cities
+  sacramento: { effectiveTaxRate: 0.066, salesTax: 0.0875, parkScore: 55, restaurantsPer1k: 2.7, unemploymentRate: 4.8, jobGrowth1y: 0.7, lfpRate: 79.0, median2brSqft: 1080, pctComfortDays: 51 },
+  fresno:     { effectiveTaxRate: 0.050, salesTax: 0.0875, parkScore: 38, restaurantsPer1k: 2.5, unemploymentRate: 6.0, jobGrowth1y: 0.5, lfpRate: 73.0, median2brSqft: 1100, pctComfortDays: 47 },
+  stockton:   { effectiveTaxRate: 0.050, salesTax: 0.090,  parkScore: 30, restaurantsPer1k: 2.4, unemploymentRate: 5.5, jobGrowth1y: 0.6, lfpRate: 75.0, median2brSqft: 1100, pctComfortDays: 47 },
+  bakersfield:{ effectiveTaxRate: 0.045, salesTax: 0.0825, parkScore: 28, restaurantsPer1k: 2.4, unemploymentRate: 6.5, jobGrowth1y: 0.4, lfpRate: 72.0, median2brSqft: 1100, pctComfortDays: 41 },
+  riverside:  { effectiveTaxRate: 0.057, salesTax: 0.0775, parkScore: 35, restaurantsPer1k: 2.6, unemploymentRate: 4.8, jobGrowth1y: 1.1, lfpRate: 76.0, median2brSqft: 1100, pctComfortDays: 49 },
+  reno:       { effectiveTaxRate: 0.000, salesTax: 0.0825, parkScore: 50, restaurantsPer1k: 2.9, unemploymentRate: 4.0, jobGrowth1y: 1.5, lfpRate: 78.0, median2brSqft: 1080, pctComfortDays: 47 },
+  boise:      { effectiveTaxRate: 0.0575,salesTax: 0.060,  parkScore: 65, restaurantsPer1k: 2.9, unemploymentRate: 3.5, jobGrowth1y: 1.4, lfpRate: 81.0, median2brSqft: 1100, pctComfortDays: 49 },
+  spokane:    { effectiveTaxRate: 0.000, salesTax: 0.089,  parkScore: 60, restaurantsPer1k: 2.7, unemploymentRate: 4.5, jobGrowth1y: 0.7, lfpRate: 76.0, median2brSqft: 1100, pctComfortDays: 47 },
+  tacoma:     { effectiveTaxRate: 0.000, salesTax: 0.103,  parkScore: 60, restaurantsPer1k: 2.7, unemploymentRate: 4.8, jobGrowth1y: 0.8, lfpRate: 78.0, median2brSqft: 1050, pctComfortDays: 50 },
+  san_antonio:{ effectiveTaxRate: 0.000, salesTax: 0.0825, parkScore: 53, restaurantsPer1k: 2.8, unemploymentRate: 3.6, jobGrowth1y: 2.0, lfpRate: 79.0, median2brSqft: 1080, pctComfortDays: 47 },
+  tucson:     { effectiveTaxRate: 0.025, salesTax: 0.087,  parkScore: 35, restaurantsPer1k: 2.7, unemploymentRate: 4.0, jobGrowth1y: 1.5, lfpRate: 75.0, median2brSqft: 1080, pctComfortDays: 38 },
+  colorado_spr:{ effectiveTaxRate:0.044, salesTax: 0.082,  parkScore: 50, restaurantsPer1k: 2.8, unemploymentRate: 4.0, jobGrowth1y: 1.0, lfpRate: 79.0, median2brSqft: 1080, pctComfortDays: 49 },
+  boulder:    { effectiveTaxRate: 0.044, salesTax: 0.087,  parkScore: 70, restaurantsPer1k: 3.6, unemploymentRate: 3.4, jobGrowth1y: 1.0, lfpRate: 82.0, median2brSqft: 1080, pctComfortDays: 51 },
+  albany:     { effectiveTaxRate: 0.066, salesTax: 0.080,  parkScore: 55, restaurantsPer1k: 2.7, unemploymentRate: 3.5, jobGrowth1y: 0.5, lfpRate: 78.0, median2brSqft: 1080, pctComfortDays: 41 },
+  providence: { effectiveTaxRate: 0.050, salesTax: 0.070,  parkScore: 55, restaurantsPer1k: 3.0, unemploymentRate: 3.7, jobGrowth1y: 0.8, lfpRate: 79.0, median2brSqft: 1050, pctComfortDays: 42 },
+  worcester:  { effectiveTaxRate: 0.050, salesTax: 0.0625, parkScore: 50, restaurantsPer1k: 2.7, unemploymentRate: 4.0, jobGrowth1y: 0.6, lfpRate: 80.0, median2brSqft: 1100, pctComfortDays: 41 },
+  richmond:   { effectiveTaxRate: 0.0575,salesTax: 0.060,  parkScore: 50, restaurantsPer1k: 2.7, unemploymentRate: 3.4, jobGrowth1y: 1.0, lfpRate: 80.0, median2brSqft: 1080, pctComfortDays: 47 },
+  jacksonville:{ effectiveTaxRate:0.000, salesTax: 0.075,  parkScore: 50, restaurantsPer1k: 2.7, unemploymentRate: 3.5, jobGrowth1y: 1.8, lfpRate: 79.0, median2brSqft: 1080, pctComfortDays: 41 },
+  ft_lauderdale:{ effectiveTaxRate:0.000,salesTax: 0.070,  parkScore: 40, restaurantsPer1k: 3.2, unemploymentRate: 3.6, jobGrowth1y: 2.2, lfpRate: 78.0, median2brSqft: 1010, pctComfortDays: 41 },
+  madison:    { effectiveTaxRate: 0.063, salesTax: 0.055,  parkScore: 70, restaurantsPer1k: 3.0, unemploymentRate: 2.7, jobGrowth1y: 1.3, lfpRate: 84.0, median2brSqft: 1080, pctComfortDays: 38 },
+  milwaukee:  { effectiveTaxRate: 0.063, salesTax: 0.056,  parkScore: 55, restaurantsPer1k: 2.8, unemploymentRate: 3.5, jobGrowth1y: 0.4, lfpRate: 78.0, median2brSqft: 1080, pctComfortDays: 39 }
+};
+
+// ─── Buy layer (Zillow ZHVI Q1 2026 + ACS housing characteristics) ───────────
+//
+//   medianHomePrice  Zillow Home Value Index, all homes, metro level ($)
+//   medianHomeSqft   Typical sale size for the metro (Census ACS housing
+//                    characteristics + Zillow listings; varies wildly —
+//                    NYC/SF apartment-heavy markets have much smaller
+//                    typical sqft than Texas / Carolina builds.)
+export const US_CITY_BUY = {
+  // Tier-1 cohort
+  nyc:        { medianHomePrice:  760000, medianHomeSqft:  850 },
+  san_jose:   { medianHomePrice: 1500000, medianHomeSqft: 1700 },
+  irvine:     { medianHomePrice: 1450000, medianHomeSqft: 2000 },
+  boston:     { medianHomePrice:  730000, medianHomeSqft: 1500 },
+  san_diego:  { medianHomePrice:  940000, medianHomeSqft: 1700 },
+  san_franc:  { medianHomePrice: 1350000, medianHomeSqft: 1450 },
+  oakland:    { medianHomePrice:  920000, medianHomeSqft: 1500 },
+  honolulu:   { medianHomePrice:  890000, medianHomeSqft: 1300 },
+  seattle:    { medianHomePrice:  830000, medianHomeSqft: 1750 },
+  jersey_cty: { medianHomePrice:  720000, medianHomeSqft: 1400 },
+
+  los_angeles:{ medianHomePrice:  980000, medianHomeSqft: 1700 },
+  chicago:    { medianHomePrice:  315000, medianHomeSqft: 1700 },
+  washington: { medianHomePrice:  620000, medianHomeSqft: 1700 },
+  miami:      { medianHomePrice:  610000, medianHomeSqft: 1500 },
+  atlanta:    { medianHomePrice:  390000, medianHomeSqft: 1900 },
+  dallas:     { medianHomePrice:  390000, medianHomeSqft: 2000 },
+  houston:    { medianHomePrice:  310000, medianHomeSqft: 1900 },
+  austin:     { medianHomePrice:  570000, medianHomeSqft: 1900 },
+  denver:     { medianHomePrice:  560000, medianHomeSqft: 1800 },
+  phoenix:    { medianHomePrice:  440000, medianHomeSqft: 1900 },
+  las_vegas:  { medianHomePrice:  430000, medianHomeSqft: 1900 },
+  portland:   { medianHomePrice:  560000, medianHomeSqft: 1700 },
+  philadelphia:{ medianHomePrice: 235000, medianHomeSqft: 1500 },
+  minneapolis:{ medianHomePrice:  345000, medianHomeSqft: 1700 },
+  detroit:    { medianHomePrice:   90000, medianHomeSqft: 1800 },
+  charlotte:  { medianHomePrice:  385000, medianHomeSqft: 2000 },
+  orlando:    { medianHomePrice:  390000, medianHomeSqft: 1850 },
+  tampa:      { medianHomePrice:  390000, medianHomeSqft: 1800 },
+  pittsburgh: { medianHomePrice:  235000, medianHomeSqft: 1500 },
+  st_louis:   { medianHomePrice:  200000, medianHomeSqft: 1700 },
+  baltimore:  { medianHomePrice:  215000, medianHomeSqft: 1500 },
+  cincinnati: { medianHomePrice:  230000, medianHomeSqft: 1700 },
+  cleveland:  { medianHomePrice:  115000, medianHomeSqft: 1500 },
+  kansas_city:{ medianHomePrice:  250000, medianHomeSqft: 1700 },
+  indianapolis:{ medianHomePrice: 235000, medianHomeSqft: 1700 },
+  columbus:   { medianHomePrice:  245000, medianHomeSqft: 1700 },
+  nashville:  { medianHomePrice:  445000, medianHomeSqft: 1900 },
+  raleigh:    { medianHomePrice:  440000, medianHomeSqft: 1900 },
+  salt_lake:  { medianHomePrice:  560000, medianHomeSqft: 1900 },
+  albuquerque:{ medianHomePrice:  325000, medianHomeSqft: 1700 },
+  oklahoma_cy:{ medianHomePrice:  215000, medianHomeSqft: 1700 },
+  memphis:    { medianHomePrice:  155000, medianHomeSqft: 1800 },
+
+  // Commuter / destination cohort
+  sacramento: { medianHomePrice:  560000, medianHomeSqft: 1800 },
+  fresno:     { medianHomePrice:  380000, medianHomeSqft: 1850 },
+  stockton:   { medianHomePrice:  470000, medianHomeSqft: 1800 },
+  bakersfield:{ medianHomePrice:  360000, medianHomeSqft: 1900 },
+  riverside:  { medianHomePrice:  575000, medianHomeSqft: 1900 },
+  reno:       { medianHomePrice:  555000, medianHomeSqft: 1800 },
+  boise:      { medianHomePrice:  510000, medianHomeSqft: 1900 },
+  spokane:    { medianHomePrice:  380000, medianHomeSqft: 1700 },
+  tacoma:     { medianHomePrice:  530000, medianHomeSqft: 1800 },
+  san_antonio:{ medianHomePrice:  290000, medianHomeSqft: 1900 },
+  tucson:     { medianHomePrice:  350000, medianHomeSqft: 1900 },
+  colorado_spr:{ medianHomePrice: 480000, medianHomeSqft: 1900 },
+  boulder:    { medianHomePrice:  850000, medianHomeSqft: 1900 },
+  albany:     { medianHomePrice:  285000, medianHomeSqft: 1700 },
+  providence: { medianHomePrice:  450000, medianHomeSqft: 1600 },
+  worcester:  { medianHomePrice:  415000, medianHomeSqft: 1700 },
+  richmond:   { medianHomePrice:  360000, medianHomeSqft: 1800 },
+  jacksonville:{ medianHomePrice: 320000, medianHomeSqft: 1900 },
+  ft_lauderdale:{ medianHomePrice:470000, medianHomeSqft: 1700 },
+  madison:    { medianHomePrice:  410000, medianHomeSqft: 1700 },
+  milwaukee:  { medianHomePrice:  240000, medianHomeSqft: 1700 }
 };

@@ -137,7 +137,21 @@
       background: var(--card); border-radius: 12px; padding: 1rem 1.1rem;
       margin: 0 0 1rem;
     }
-    .rent-compare-title { font-size: 13px; font-weight: 600; color: var(--fg); margin: 0 0 0.6rem; }
+    .rent-compare-head {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 12px; margin-bottom: 0.6rem; flex-wrap: wrap;
+    }
+    .rent-compare-toggle {
+      display: inline-flex; background: var(--bg); border: 0.5px solid var(--border);
+      border-radius: 999px; padding: 2px;
+    }
+    .rc-mode {
+      background: transparent; border: none; cursor: pointer;
+      font-family: inherit; font-size: 12px; color: var(--muted);
+      padding: 4px 12px; border-radius: 999px;
+    }
+    .rc-mode.active { background: var(--accent); color: #fff; font-weight: 500; }
+    .rent-compare-title { font-size: 13px; font-weight: 600; color: var(--fg); margin: 0; }
     .rent-compare-grid {
       display: grid; grid-template-columns: 110px 1fr; align-items: center;
       gap: 8px 12px; margin-bottom: 0.5rem;
@@ -375,9 +389,15 @@
     <div class="feels-cards" id="feels-cards"></div>
 
     <div class="rent-compare" id="rent-compare" hidden>
-      <p class="rent-compare-title">What your rent buys</p>
+      <div class="rent-compare-head">
+        <p class="rent-compare-title" id="rent-compare-title">What your rent buys</p>
+        <div class="rent-compare-toggle" role="tablist" aria-label="Rent or buy">
+          <button class="rc-mode active" data-mode="rent" role="tab" aria-selected="true">Rent /mo</button>
+          <button class="rc-mode"        data-mode="buy"  role="tab" aria-selected="false">Buy total</button>
+        </div>
+      </div>
       <div class="rent-compare-grid">
-        <label for="rent-compare-budget">Monthly budget</label>
+        <label for="rent-compare-budget" id="rent-compare-budget-label">Monthly budget</label>
         <input type="number" id="rent-compare-budget" min="500" step="100" value="3000" />
         <label for="rent-compare-other">vs.</label>
         <select id="rent-compare-other" aria-label="Compare housing space against another US city"></select>
@@ -454,6 +474,13 @@
     </details>
 
     <details itemscope itemprop="mainEntity" itemtype="https://schema.org/Question">
+      <summary itemprop="name">What about buying — how is "Buy total" calculated?</summary>
+      <div itemscope itemprop="acceptedAnswer" itemtype="https://schema.org/Answer">
+        <p itemprop="text">Toggle the comparison card to <strong>Buy total</strong> and it switches to purchase prices. We use the metro's Zillow Home Value Index (median home price across all home types) and a typical sale square footage (Census ACS housing characteristics + Zillow listings) to compute a $/sqft rate, then project that onto your purchase budget. Example: $800,000 in San Francisco buys about 850 sqft (a 1BR condo), while the same $800,000 in Sacramento buys 2,500+ sqft (a four-bedroom house with a yard). The numbers are metro-wide medians — central neighborhoods cost more, suburbs cost less — but the relative gaps between metros are robust and match what real listings show.</p>
+      </div>
+    </details>
+
+    <details itemscope itemprop="mainEntity" itemtype="https://schema.org/Question">
       <summary itemprop="name">Why only 40 US cities — what about my town?</summary>
       <div itemscope itemprop="acceptedAnswer" itemtype="https://schema.org/Answer">
         <p itemprop="text">v1 ships with the 10 cities from Visual Capitalist's "comfortable salary" report plus 30 of the largest US metros. Adding all 3,144 US counties (the MIT Living Wage scope) is on the roadmap and well-supported by the data layer — once the dataset is integrated, every county will get the same dashboard treatment.</p>
@@ -484,8 +511,10 @@
       US_CITIES, COUNTRIES, US_CITY_FEELS
     } from './cost.js';
 
-    const DEFAULTS = { p: 'nyc', s: '', r: 'us', a: 1, k: 0, vs: 'memphis', rb: 3000 };
-    const state = { p: DEFAULTS.p, s: DEFAULTS.s, r: DEFAULTS.r, a: DEFAULTS.a, k: DEFAULTS.k, vs: DEFAULTS.vs, rb: DEFAULTS.rb, embed: false, theme: null };
+    const RENT_BUDGET_DEFAULT = 3000;
+    const BUY_BUDGET_DEFAULT = 600000;
+    const DEFAULTS = { p: 'nyc', s: '', r: 'us', a: 1, k: 0, vs: 'memphis', rb: RENT_BUDGET_DEFAULT, hm: 'rent' };
+    const state = { p: DEFAULTS.p, s: DEFAULTS.s, r: DEFAULTS.r, a: DEFAULTS.a, k: DEFAULTS.k, vs: DEFAULTS.vs, rb: DEFAULTS.rb, hm: DEFAULTS.hm, embed: false, theme: null };
 
     function householdMultiplier(a, k) {
       const ad = Math.max(1, Math.floor(a || 1));
@@ -534,8 +563,13 @@
       if (isFinite(k) && k >= 0 && k <= 4) state.k = k;
       const vs = q.get('vs');
       if (vs && US_CITY_FEELS[vs]) state.vs = vs;
+      const hm = q.get('hm');
+      if (hm === 'rent' || hm === 'buy') state.hm = hm;
       const rb = parseInt(q.get('rb'), 10);
-      if (isFinite(rb) && rb >= 500 && rb <= 20000) state.rb = rb;
+      const rbMin = state.hm === 'buy' ? 50000 : 500;
+      const rbMax = state.hm === 'buy' ? 20000000 : 20000;
+      if (isFinite(rb) && rb >= rbMin && rb <= rbMax) state.rb = rb;
+      else if (state.hm === 'buy' && state.rb === RENT_BUDGET_DEFAULT) state.rb = BUY_BUDGET_DEFAULT;
       state.embed = q.get('embed') === '1';
       const themeQ = q.get('theme');
       if (themeQ === 'light' || themeQ === 'dark') state.theme = themeQ;
@@ -549,7 +583,9 @@
       if (state.a !== DEFAULTS.a) q.set('a', state.a);
       if (state.k !== DEFAULTS.k) q.set('k', state.k);
       if (state.vs !== DEFAULTS.vs) q.set('vs', state.vs);
-      if (state.rb !== DEFAULTS.rb) q.set('rb', state.rb);
+      if (state.hm !== DEFAULTS.hm) q.set('hm', state.hm);
+      const rbDefault = state.hm === 'buy' ? BUY_BUDGET_DEFAULT : RENT_BUDGET_DEFAULT;
+      if (state.rb !== rbDefault) q.set('rb', state.rb);
       if (state.theme) q.set('theme', state.theme);
       if (includeEmbed) q.set('embed', '1');
       return q.toString();
@@ -597,7 +633,20 @@
       const rentOther = $('#rent-compare-other');
       if (rentOther) rentOther.value = state.vs;
       const rentBudget = $('#rent-compare-budget');
-      if (rentBudget) rentBudget.value = String(state.rb);
+      if (rentBudget) {
+        rentBudget.value = String(state.rb);
+        rentBudget.min = state.hm === 'buy' ? 50000 : 500;
+        rentBudget.step = state.hm === 'buy' ? 10000 : 100;
+      }
+      const rentBudgetLabel = $('#rent-compare-budget-label');
+      if (rentBudgetLabel) rentBudgetLabel.textContent = state.hm === 'buy' ? 'Purchase price' : 'Monthly budget';
+      const rentTitle = $('#rent-compare-title');
+      if (rentTitle) rentTitle.textContent = state.hm === 'buy' ? 'What your home-buying budget gets you' : 'What your rent buys';
+      $$('.rc-mode').forEach(b => {
+        const active = b.dataset.mode === state.hm;
+        b.classList.toggle('active', active);
+        b.setAttribute('aria-selected', active ? 'true' : 'false');
+      });
       $$('.rank-chip').forEach(c => c.classList.toggle('active', c.dataset.rank === state.r));
     }
 
@@ -851,19 +900,22 @@
         return;
       }
       wrap.hidden = false;
-      const cmp = housingComparison(state.p, state.vs, state.rb);
+      const cmp = housingComparison(state.p, state.vs, state.rb, { mode: state.hm });
       const out = $('#rent-compare-out');
       if (!cmp) { out.textContent = 'Comparison unavailable.'; return; }
-      const ratio = cmp.a > 0 ? cmp.b.sqft / cmp.a.sqft : 0;
+      const aSq = cmp.a.sqft, bSq = cmp.b.sqft;
+      const ratio = aSq > 0 ? bSq / aSq : 0;
       const better = cmp.delta > 0
         ? `<em>${cmp.b.name}</em> gets you ${ratio.toFixed(1)}× the space.`
         : cmp.delta < 0
-        ? `<em>${cmp.a.name}</em> gets you ${(cmp.a.sqft / cmp.b.sqft).toFixed(1)}× the space.`
+        ? `<em>${cmp.a.name}</em> gets you ${(aSq / Math.max(bSq, 1)).toFixed(1)}× the space.`
         : 'Both cities get you the same space.';
+      const verb = state.hm === 'buy' ? 'buys' : 'rents';
+      const budgetSuffix = state.hm === 'buy' ? '' : '/mo';
       out.innerHTML =
-        `<strong>${fmtMoney(cmp.monthlyBudget, { compact: true })}/mo</strong> rents about ` +
-        `<strong>${cmp.a.sqft} sqft</strong> in ${cmp.a.name}, ` +
-        `vs. <strong>${cmp.b.sqft} sqft</strong> in ${cmp.b.name}. ` +
+        `<strong>${fmtMoney(cmp.budget, { compact: true })}${budgetSuffix}</strong> ${verb} about ` +
+        `<strong>${aSq} sqft</strong> in ${cmp.a.name}, ` +
+        `vs. <strong>${bSq} sqft</strong> in ${cmp.b.name}. ` +
         better;
     }
 
@@ -1039,7 +1091,8 @@
       });
       $('#rent-compare-budget').addEventListener('input', () => {
         const v = parseInt($('#rent-compare-budget').value, 10);
-        state.rb = isFinite(v) && v >= 500 ? v : DEFAULTS.rb;
+        const min = state.hm === 'buy' ? 50000 : 500;
+        state.rb = isFinite(v) && v >= min ? v : (state.hm === 'buy' ? BUY_BUDGET_DEFAULT : RENT_BUDGET_DEFAULT);
         renderRentCompare();
         syncUrl();
       });
@@ -1047,6 +1100,18 @@
         state.vs = $('#rent-compare-other').value;
         renderRentCompare();
         syncUrl();
+      });
+      $$('.rc-mode').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const next = btn.dataset.mode;
+          if (next === state.hm) return;
+          state.hm = next;
+          // Swap budget to the sensible default when toggling modes.
+          state.rb = next === 'buy' ? BUY_BUDGET_DEFAULT : RENT_BUDGET_DEFAULT;
+          applyToInputs();
+          renderRentCompare();
+          syncUrl();
+        });
       });
       $$('.rank-chip').forEach(c => {
         c.addEventListener('click', () => {

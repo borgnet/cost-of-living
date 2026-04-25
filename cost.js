@@ -2,7 +2,7 @@
 // All inputs are validated permissively; unknown ids return null.
 
 import {
-  US_CITIES, COUNTRIES, DATA_SOURCE, US_CITY_FEELS,
+  US_CITIES, COUNTRIES, DATA_SOURCE, US_CITY_FEELS, US_CITY_BUY,
   NATIONAL_LIVING_WAGE_SINGLE, NATIONAL_MEDIAN_WAGE, NATIONAL_RENT_2BR
 } from './data.js';
 
@@ -229,17 +229,36 @@ export function sqftAtBudget(cityId, monthlyBudget) {
   return Math.round(sqftPerDollar * monthlyBudget);
 }
 
-// Side-by-side housing comparison: same monthly budget, two cities.
-// Returns null if either city is unknown.
-export function housingComparison(cityIdA, cityIdB, monthlyBudget) {
+// Square footage your purchase budget would buy at the metro median, using
+// Zillow ZHVI median home price + median home sqft as the $/sqft reference.
+// Returns 0 for cities without buy-layer data.
+export function sqftAtBuyBudget(cityId, totalPrice) {
+  const b = US_CITY_BUY[cityId];
+  if (!b || !isFinite(totalPrice) || totalPrice <= 0) return 0;
+  const sqftPerDollar = b.medianHomeSqft / b.medianHomePrice;
+  return Math.round(sqftPerDollar * totalPrice);
+}
+
+// Side-by-side housing comparison. Mode = 'rent' (monthly rent budget, default)
+// or 'buy' (total purchase price). Returns null if either city is unknown
+// or — for buy mode — lacks buy-layer data.
+export function housingComparison(cityIdA, cityIdB, budget, { mode = 'rent' } = {}) {
   if (!US_CITIES[cityIdA] || !US_CITIES[cityIdB]) return null;
-  if (!isFinite(monthlyBudget) || monthlyBudget <= 0) return null;
-  const a = sqftAtBudget(cityIdA, monthlyBudget);
-  const b = sqftAtBudget(cityIdB, monthlyBudget);
+  if (!isFinite(budget) || budget <= 0) return null;
+  let a, b;
+  if (mode === 'buy') {
+    if (!US_CITY_BUY[cityIdA] || !US_CITY_BUY[cityIdB]) return null;
+    a = sqftAtBuyBudget(cityIdA, budget);
+    b = sqftAtBuyBudget(cityIdB, budget);
+  } else {
+    a = sqftAtBudget(cityIdA, budget);
+    b = sqftAtBudget(cityIdB, budget);
+  }
   return {
+    mode,
     a: { id: cityIdA, name: US_CITIES[cityIdA].name, sqft: a },
     b: { id: cityIdB, name: US_CITIES[cityIdB].name, sqft: b },
-    monthlyBudget,
+    budget,
     delta: b - a,
     deltaPct: a > 0 ? ((b - a) / a) * 100 : 0
   };
@@ -326,4 +345,4 @@ export function searchPlaces(query, { limit = 10 } = {}) {
   return out.slice(0, limit);
 }
 
-export { DATA_SOURCE, US_CITIES, COUNTRIES, US_CITY_FEELS, NATIONAL_LIVING_WAGE_SINGLE, NATIONAL_MEDIAN_WAGE, NATIONAL_RENT_2BR };
+export { DATA_SOURCE, US_CITIES, COUNTRIES, US_CITY_FEELS, US_CITY_BUY, NATIONAL_LIVING_WAGE_SINGLE, NATIONAL_MEDIAN_WAGE, NATIONAL_RENT_2BR };
