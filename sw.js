@@ -1,4 +1,4 @@
-const CACHE = 'extrautil-v6';
+const CACHE = 'extrautil-v7';
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();
@@ -12,6 +12,10 @@ self.addEventListener('activate', (event) => {
   );
 });
 
+// Network-first with offline cache fallback. Tools deploy frequently and
+// import siblings as ES modules — a stale cache for one file can break
+// the entire page. Always try the network first; fall back to the cache
+// only when offline.
 self.addEventListener('fetch', (event) => {
   const req = event.request;
   if (req.method !== 'GET') return;
@@ -19,13 +23,12 @@ self.addEventListener('fetch', (event) => {
   if (url.origin !== self.location.origin) return;
 
   event.respondWith(
-    caches.open(CACHE).then(async (cache) => {
-      const cached = await cache.match(req);
-      const network = fetch(req).then((resp) => {
-        if (resp && resp.ok) cache.put(req, resp.clone());
-        return resp;
-      }).catch(() => cached);
-      return cached || network;
-    })
+    fetch(req).then((resp) => {
+      if (resp && resp.ok) {
+        const copy = resp.clone();
+        caches.open(CACHE).then((c) => c.put(req, copy)).catch(() => {});
+      }
+      return resp;
+    }).catch(() => caches.match(req))
   );
 });

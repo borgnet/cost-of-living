@@ -524,6 +524,43 @@
     const DEFAULTS = { p: 'nyc', s: '', r: 'us', a: 1, k: 0, vs: 'memphis', rb: RENT_BUDGET_DEFAULT, hm: 'rent' };
     const state = { p: DEFAULTS.p, s: DEFAULTS.s, r: DEFAULTS.r, a: DEFAULTS.a, k: DEFAULTS.k, vs: DEFAULTS.vs, rb: DEFAULTS.rb, hm: DEFAULTS.hm, embed: false, theme: null };
 
+    // IANA timezone → best-guess US city default. Picks a major metro from
+    // the same time zone or sub-region. Falls back to null so the caller
+    // can keep the global DEFAULTS.p value. Only consulted when the URL
+    // doesn't pin a place.
+    const TZ_TO_CITY = {
+      'America/Los_Angeles': 'san_franc',
+      'America/Tijuana': 'san_diego',
+      'America/Vancouver': 'seattle',
+      'America/Phoenix': 'phoenix',
+      'America/Denver': 'denver',
+      'America/Boise': 'boise',
+      'America/Salt_Lake': 'salt_lake',
+      'America/Chicago': 'chicago',
+      'America/New_York': 'nyc',
+      'America/Detroit': 'detroit',
+      'America/Indianapolis': 'indianapolis',
+      'America/Toronto': 'nyc',
+      'America/Anchorage': 'seattle',
+      'Pacific/Honolulu': 'honolulu'
+    };
+    function detectDefaultCity() {
+      try {
+        const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+        const id = TZ_TO_CITY[tz];
+        if (id && US_CITIES[id]) return id;
+        // Heuristic for unmapped US time zones — match the suffix region.
+        if (typeof tz === 'string') {
+          if (tz.startsWith('America/Argentina/') || tz.startsWith('America/Sao_Paulo')) return null;
+          if (tz.endsWith('/Los_Angeles') || tz.endsWith('/Pacific')) return 'san_franc';
+          if (tz.endsWith('/Denver') || tz.endsWith('/Mountain')) return 'denver';
+          if (tz.endsWith('/Chicago') || tz.endsWith('/Central')) return 'chicago';
+          if (tz.endsWith('/New_York') || tz.endsWith('/Eastern')) return 'nyc';
+        }
+      } catch {}
+      return null;
+    }
+
     function householdMultiplier(a, k) {
       const ad = Math.max(1, Math.floor(a || 1));
       const ch = Math.max(0, Math.floor(k || 0));
@@ -560,7 +597,14 @@
     function readState() {
       const q = new URLSearchParams(location.search);
       const p = q.get('p');
-      if (p && (US_CITIES[p] || COUNTRIES[p.toUpperCase()])) state.p = p;
+      if (p && (US_CITIES[p] || COUNTRIES[p.toUpperCase()])) {
+        state.p = p;
+      } else {
+        // No place pinned in the URL — try to pick a sensible local default
+        // from the browser's timezone before falling back to NYC.
+        const tzCity = detectDefaultCity();
+        if (tzCity) state.p = tzCity;
+      }
       const s = parseFloat(q.get('s'));
       state.s = isFinite(s) && s >= 0 ? s : DEFAULTS.s;
       const r = q.get('r');
