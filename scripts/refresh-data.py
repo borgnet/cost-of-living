@@ -61,6 +61,50 @@ CENSUS_API_URL = "https://api.census.gov/data"
 ZILLOW_ZHVI_URL = "https://files.zillowstatic.com/research/public_csvs/zhvi/Metro_zhvi_uc_sfrcondo_tier_0.33_0.67_sm_sa_month.csv"
 CDC_LIFE_EXP_URL = "https://data.cdc.gov/api/views/q9p7-7vbk/rows.csv?accessType=DOWNLOAD"
 
+# Canonical key locations. The script reads these without requiring shell
+# exports — drop a key in the matching ~/.secrets/<file> and it picks up.
+SECRETS_DIR = Path.home() / ".secrets"
+KEY_FILES = {
+    "BLS_API_KEY":    SECRETS_DIR / "bls-api-key",
+    "BEA_API_KEY":    SECRETS_DIR / "bea-api-key",
+    "CENSUS_API_KEY": SECRETS_DIR / "census-api-key",
+    "HUD_API_TOKEN":  SECRETS_DIR / "hud-api-token",
+    "FBI_API_KEY":    SECRETS_DIR / "fbi-api-key",   # used by the FBI UCR stub
+}
+# Marks which keys are required for which fetcher (rest are optional).
+REQUIRED_BY = {
+    "bea": "BEA_API_KEY",
+    "hud": "HUD_API_TOKEN",
+    "acs": "CENSUS_API_KEY",
+}
+
+def load_secret(env_name: str) -> str | None:
+    """Read $env_name first; fall back to ~/.secrets/<file>."""
+    v = os.environ.get(env_name)
+    if v: return v.strip()
+    f = KEY_FILES.get(env_name)
+    if f and f.is_file():
+        try: return f.read_text().strip()
+        except OSError: return None
+    return None
+
+def check_keys(only: set[str] | None = None) -> int:
+    rc = 0
+    for env_name, path in KEY_FILES.items():
+        # Determine if this key is required by any selected fetcher.
+        req_for = [k for k, v in REQUIRED_BY.items() if v == env_name]
+        if only:
+            req_for = [k for k in req_for if k in only]
+        v = load_secret(env_name)
+        src = (path if path.is_file() else "env") if v else None
+        if v:
+            print(f"  {env_name}: present (from {src})")
+        else:
+            tag = ("REQUIRED for " + ",".join(req_for)) if req_for else "optional"
+            if req_for: rc = 1
+            print(f"  {env_name} ({tag}): missing — put in {path}  or  export {env_name}=<value>")
+    return rc
+
 
 # ─── HTTP helpers ──────────────────────────────────────────────────────────
 
@@ -92,9 +136,10 @@ def fetch_bea_msa_rpp() -> dict[str, float]:
     Returns {cityId: rpp}. Cities not covered by an MSA in BEA's table are
     omitted (the existing data.js value is left in place).
     """
-    api_key = os.environ.get("BEA_API_KEY")
+    api_key = load_secret("BEA_API_KEY")
     if not api_key:
-        raise RuntimeError("BEA_API_KEY not set — sign up at https://apps.bea.gov/API/signup/")
+        raise RuntimeError("BEA_API_KEY missing — put in ~/.secrets/bea-api-key "
+                           "(free signup: https://apps.bea.gov/API/signup/)")
     params = {
         "UserID": api_key, "method": "GetData",
         "datasetname": "Regional", "TableName": "MARPP", "LineCode": "1",
@@ -121,9 +166,10 @@ def fetch_bea_msa_rpp() -> dict[str, float]:
 
 def fetch_hud_fmr_2br() -> dict[str, int]:
     """HUD Fair Market Rent 2BR by metro area, latest fiscal year."""
-    token = os.environ.get("HUD_API_TOKEN")
+    token = load_secret("HUD_API_TOKEN")
     if not token:
-        raise RuntimeError("HUD_API_TOKEN not set — register at https://www.huduser.gov/hudapi/public/register")
+        raise RuntimeError("HUD_API_TOKEN missing — put in ~/.secrets/hud-api-token "
+                           "(free registration: https://www.huduser.gov/hudapi/public/register)")
     fy = datetime.now().year + 1  # FY runs Oct–Sep; current FY+1 is usually published
     out: dict[str, int] = {}
     for city, cbsa in CITY_TO_CBSA.items():
@@ -166,7 +212,7 @@ def fetch_bls_msa_oews_median_wage() -> dict[str, int]:
     """Latest OEWS median annual wage (all occupations) by metro."""
     # OEWS series for "all occupations" annual median: OEUM{cbsa}000000000004
     # We grab the most recent annual point.
-    api_key = os.environ.get("BLS_API_KEY")
+    api_key = load_secret("BLS_API_KEY")
     span = 5  # OEWS only publishes once per year; small window is fine
     out: dict[str, int] = {}
     series_ids = [f"OEUM{cbsa}000000000004" for cbsa in set(CITY_TO_CBSA.values())]
@@ -202,9 +248,10 @@ def fetch_census_acs_household_income() -> dict[str, int]:
     Census's API endpoint covers metropolitan + micropolitan statistical
     areas via for=metropolitan%20statistical%20area/micropolitan%20statistical%20area:*
     """
-    api_key = os.environ.get("CENSUS_API_KEY")
+    api_key = load_secret("CENSUS_API_KEY")
     if not api_key:
-        raise RuntimeError("CENSUS_API_KEY not set — sign up at https://api.census.gov/data/key_signup.html")
+        raise RuntimeError("CENSUS_API_KEY missing — put in ~/.secrets/census-api-key "
+                           "(free signup: https://api.census.gov/data/key_signup.html)")
     year = datetime.now().year - 2   # ACS 5-year is published with 2-year lag
     url = (f"{CENSUS_API_URL}/{year}/acs/acs5"
            f"?get=NAME,B19013_001E,B08303_001E"
@@ -389,6 +436,7 @@ def main() -> int:
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawTextHelpFormatter)
     p.add_argument("--apply", action="store_true", help="Write data.js")
     p.add_argument("--only", default="", help="Comma-separated subset: " + ",".join(FETCHERS))
+    p.add_argument("--check-keys", action="store_true", help="Report which API keys are present / missing")
     args = p.parse_args()
 
     requested = set(s.strip() for s in args.only.split(",") if s.strip())
@@ -397,6 +445,10 @@ def main() -> int:
         if unknown:
             print(f"Unknown fetchers: {unknown}", file=sys.stderr)
             return 1
+
+    if args.check_keys:
+        print("Key check:", file=sys.stderr)
+        return check_keys(only=requested or None)
 
     original = DATA_FILE.read_text()
     text = original
@@ -461,7 +513,7 @@ def _state_fips(code: str) -> str: return _STATE_FIPS.get(code, "00")
 
 def _bls_latest_value_for_each(series_for, scale: float = 1.0) -> dict[str, float]:
     """Helper: query BLS for one series per city, return latest-month value."""
-    api_key = os.environ.get("BLS_API_KEY")
+    api_key = load_secret("BLS_API_KEY")
     out: dict[str, float] = {}
     cities = list(CITY_TO_CBSA)
     chunk = 50 if api_key else 25
