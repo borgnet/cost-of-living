@@ -200,6 +200,34 @@
     .stat-card.warn .stat-value { color: var(--b-accent); }
     .stat-card.good .stat-value { color: var(--g-accent); }
 
+    .country-controls {
+      display: flex; flex-direction: column; gap: 8px;
+      margin: 0.5rem 0 0.75rem;
+    }
+    .country-control-row {
+      display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+    }
+    .country-control-label {
+      font-size: 12px; color: var(--muted); min-width: 90px;
+    }
+    .country-control-row select {
+      flex: 1; min-width: 120px;
+      background: var(--card); border: 0.5px solid var(--border); border-radius: 8px;
+      padding: 0 10px; height: 34px; font-size: 13px; color: var(--fg);
+      outline: none; font-family: inherit;
+    }
+    .cohort-toggle {
+      display: inline-flex; flex-wrap: wrap; gap: 4px;
+      background: var(--card); border: 0.5px solid var(--border);
+      border-radius: 999px; padding: 2px;
+    }
+    .cohort-chip {
+      background: transparent; border: none; cursor: pointer;
+      font-family: inherit; font-size: 12px; color: var(--muted);
+      padding: 4px 10px; border-radius: 999px;
+    }
+    .cohort-chip.active { background: var(--accent); color: #fff; font-weight: 500; }
+
     .controls { display: flex; flex-direction: column; gap: 10px; margin-bottom: 1rem; }
     .control-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
     .control-label { font-size: 13px; color: var(--muted); min-width: 110px; }
@@ -400,6 +428,25 @@
 
   <details class="collapsible" id="radar-details" open>
     <summary><span>Quality-of-life radar</span></summary>
+
+    <div class="country-controls" id="country-controls" hidden>
+      <div class="country-control-row">
+        <label class="country-control-label" for="country-vs">Compare to</label>
+        <select id="country-vs" aria-label="Overlay another country on the radar">
+          <option value="">— none —</option>
+        </select>
+      </div>
+      <div class="country-control-row">
+        <span class="country-control-label">Peer cohort</span>
+        <div class="cohort-toggle" role="tablist" aria-label="Country cohort for peer median">
+          <button class="cohort-chip" data-cc="top20">Top-20</button>
+          <button class="cohort-chip" data-cc="brics">BRICS</button>
+          <button class="cohort-chip" data-cc="retirement">Retire-abroad</button>
+          <button class="cohort-chip" data-cc="all">All</button>
+        </div>
+      </div>
+    </div>
+
     <div class="chart-wrap">
       <canvas id="radar" role="img" aria-label="Quality of life radar chart"></canvas>
     </div>
@@ -540,14 +587,24 @@
     import {
       resolvePlace, summarizeCity, summarizeCountry, rankUsCities, rankCountries,
       affordabilityGauge, feelsLikeRadar, takeHome, savingsCapacity,
-      sqftAtBudget, housingComparison,
+      sqftAtBudget, housingComparison, countryPurchasingPower, countriesInCohort,
       US_CITIES, COUNTRIES, US_CITY_FEELS
     } from './cost.js';
 
     const RENT_BUDGET_DEFAULT = 3000;
     const BUY_BUDGET_DEFAULT = 600000;
-    const DEFAULTS = { p: 'nyc', s: '', r: 'us', a: 1, k: 0, vs: 'memphis', rb: RENT_BUDGET_DEFAULT, hm: 'rent' };
-    const state = { p: DEFAULTS.p, s: DEFAULTS.s, r: DEFAULTS.r, a: DEFAULTS.a, k: DEFAULTS.k, vs: DEFAULTS.vs, rb: DEFAULTS.rb, hm: DEFAULTS.hm, embed: false, theme: null };
+    const DEFAULTS = {
+      p: 'nyc', s: '', r: 'us', a: 1, k: 0,
+      vs: 'memphis',  rb: RENT_BUDGET_DEFAULT, hm: 'rent',
+      vsc: '',        // optional country-vs-country comparison code
+      cc: 'top20'     // country-radar cohort: top20 | brics | retirement | all
+    };
+    const state = {
+      p: DEFAULTS.p, s: DEFAULTS.s, r: DEFAULTS.r, a: DEFAULTS.a, k: DEFAULTS.k,
+      vs: DEFAULTS.vs, rb: DEFAULTS.rb, hm: DEFAULTS.hm,
+      vsc: DEFAULTS.vsc, cc: DEFAULTS.cc,
+      embed: false, theme: null
+    };
 
     // IANA timezone → best-guess US city default. Picks a major metro from
     // the same time zone or sub-region. Falls back to null so the caller
@@ -642,6 +699,10 @@
       if (vs && US_CITY_FEELS[vs]) state.vs = vs;
       const hm = q.get('hm');
       if (hm === 'rent' || hm === 'buy') state.hm = hm;
+      const vsc = q.get('vsc');
+      if (vsc && COUNTRIES[vsc.toUpperCase()]) state.vsc = vsc.toUpperCase();
+      const cc = q.get('cc');
+      if (cc === 'top20' || cc === 'brics' || cc === 'retirement' || cc === 'all') state.cc = cc;
       const rb = parseInt(q.get('rb'), 10);
       const rbMin = state.hm === 'buy' ? 50000 : 500;
       const rbMax = state.hm === 'buy' ? 20000000 : 20000;
@@ -663,6 +724,8 @@
       if (state.hm !== DEFAULTS.hm) q.set('hm', state.hm);
       const rbDefault = state.hm === 'buy' ? BUY_BUDGET_DEFAULT : RENT_BUDGET_DEFAULT;
       if (state.rb !== rbDefault) q.set('rb', state.rb);
+      if (state.vsc) q.set('vsc', state.vsc);
+      if (state.cc !== DEFAULTS.cc) q.set('cc', state.cc);
       if (state.theme) q.set('theme', state.theme);
       if (includeEmbed) q.set('embed', '1');
       return q.toString();
@@ -692,6 +755,11 @@
         .sort((a, b) => a.name.localeCompare(b.name))
         .map(c => `<option value="${c.id}">${c.name}, ${c.state}</option>`).join('');
       $('#rent-compare-other').innerHTML = compareOpts;
+      // Country-vs list shows every country we have data for.
+      const cvsOpts = Object.values(COUNTRIES)
+        .sort((a, b) => a.name.localeCompare(b.name))
+        .map(c => `<option value="${c.code}">${c.name}</option>`).join('');
+      $('#country-vs').innerHTML = '<option value="">— none —</option>' + cvsOpts;
     }
 
     function applyToInputs() {
@@ -725,6 +793,18 @@
         b.setAttribute('aria-selected', active ? 'true' : 'false');
       });
       $$('.rank-chip').forEach(c => c.classList.toggle('active', c.dataset.rank === state.r));
+      // Country comparison + cohort controls only show when a country is selected.
+      const countryControls = $('#country-controls');
+      if (countryControls) countryControls.hidden = !(place && place.kind === 'country');
+      const countryVs = $('#country-vs');
+      if (countryVs) {
+        // Don't allow selecting yourself as the comparison country.
+        const valid = state.vsc && state.vsc !== state.p;
+        countryVs.value = valid ? state.vsc : '';
+      }
+      $$('.cohort-chip').forEach(b => {
+        b.classList.toggle('active', b.dataset.cc === state.cc);
+      });
     }
 
     function describeScenario() {
@@ -767,7 +847,18 @@
         }
       } else {
         const c = summarizeCountry(state.p);
-        el.innerHTML = `<strong>${c.name}</strong> — Numbeo QoL <strong>${fmtNum(c.numbeoIndex, 1)}</strong>, CEO World <strong>${fmtNum(c.ceoScore, 1)}</strong>, average wage <strong>${fmtMoney(c.avgSalary, { compact: true })}</strong>.`;
+        const userS = parseFloat(state.s);
+        if (isFinite(userS) && userS > 0) {
+          const pp = countryPurchasingPower(state.p, userS);
+          const ratioStr = pp.ratioVsLocal != null
+            ? (pp.ratioVsLocal >= 1
+                ? `<strong>${pp.ratioVsLocal.toFixed(1)}×</strong> the local average wage`
+                : `<strong>${(1 / pp.ratioVsLocal).toFixed(1)}×</strong> below the local average wage`)
+            : '';
+          el.innerHTML = `<strong>${fmtMoney(userS, { compact: true })}</strong> in ${c.name} feels like <strong>${fmtMoney(pp.nycEquivalent, { compact: true })}</strong> in NYC purchasing power — ${ratioStr}.`;
+        } else {
+          el.innerHTML = `<strong>${c.name}</strong> — Numbeo QoL <strong>${fmtNum(c.numbeoIndex, 1)}</strong>, CEO World <strong>${fmtNum(c.ceoScore, 1)}</strong>, average wage <strong>${fmtMoney(c.avgSalary, { compact: true })}</strong>. Enter a salary above to see local purchasing power.`;
+        }
       }
     }
 
@@ -799,16 +890,38 @@
         ].join('');
       } else {
         const c = summarizeCountry(state.p);
-        el.innerHTML = [
-          card('Numbeo QoL Index', fmtNum(c.numbeoIndex, 1), 'global rank-driver', 'accent'),
-          card('CEO World score', fmtNum(c.ceoScore, 1), 'cross-check'),
-          card('Avg salary', fmtMoney(c.avgSalary, { compact: true }), 'national mean'),
-          card('Effective PP', fmtNum(c.effectivePP, 0), 'NYC = 100', c.effectivePP > 100 ? 'good' : ''),
-          card('Safety', fmtNum(c.sub.safety, 0), 'Numbeo · 0–100'),
-          card('Healthcare', fmtNum(c.sub.health, 0), 'Numbeo · 0–100'),
-          card('Climate', fmtNum(c.sub.climate, 0), 'Numbeo · 0–100'),
-          card('Life expectancy', fmtNum(c.lifeExpectancy, 1) + ' yr', '')
-        ].join('');
+        const userS = parseFloat(state.s);
+        const haveSalary = isFinite(userS) && userS > 0;
+        const cards = [];
+        if (haveSalary) {
+          const pp = countryPurchasingPower(state.p, userS);
+          cards.push(card(
+            'Your $ in NYC equivalent',
+            fmtMoney(pp.nycEquivalent, { compact: true }),
+            `cost-of-living ${fmtNum(c.sub.costOfLiving, 0)} · NYC=100`,
+            pp.nycEquivalent > userS ? 'good' : 'warn'
+          ));
+          if (pp.ratioVsLocal != null) {
+            const sub = pp.ratioVsLocal >= 1
+              ? `vs local avg ${fmtMoney(pp.localAvgSalary, { compact: true })}`
+              : `local avg ${fmtMoney(pp.localAvgSalary, { compact: true })} (you're below)`;
+            cards.push(card(
+              'Vs. local average wage',
+              pp.ratioVsLocal.toFixed(1) + '×',
+              sub,
+              pp.ratioVsLocal >= 1 ? 'good' : 'warn'
+            ));
+          }
+        }
+        cards.push(card('Numbeo QoL Index', fmtNum(c.numbeoIndex, 1), 'global rank-driver', 'accent'));
+        cards.push(card('CEO World score', fmtNum(c.ceoScore, 1), 'cross-check'));
+        cards.push(card('Avg salary', fmtMoney(c.avgSalary, { compact: true }), 'national mean'));
+        cards.push(card('Effective PP', fmtNum(c.effectivePP, 0), 'NYC = 100', c.effectivePP > 100 ? 'good' : ''));
+        cards.push(card('Safety', fmtNum(c.sub.safety, 0), 'Numbeo · 0–100'));
+        cards.push(card('Healthcare', fmtNum(c.sub.health, 0), 'Numbeo · 0–100'));
+        cards.push(card('Climate', fmtNum(c.sub.climate, 0), 'Numbeo · 0–100'));
+        cards.push(card('Life expectancy', fmtNum(c.lifeExpectancy, 1) + ' yr', ''));
+        el.innerHTML = cards.join('');
       }
     }
 
@@ -874,14 +987,35 @@
         return;
       }
 
-      let selectedRadar, selectedName, peerLabel, allRadars, peerNote;
+      let selectedRadar, selectedName, peerLabel, allRadars, peerNote, comparisonRadar = null, comparisonName = null;
       if (place.kind === 'country') {
         const c = summarizeCountry(state.p);
         selectedRadar = c.radar;
         selectedName = c.name;
-        peerLabel = 'Country median';
-        allRadars = Object.values(COUNTRIES).map(x => summarizeCountry(x.code).radar);
-        peerNote = 'Numbeo sub-indices for the selected country (blue) vs. the median across all countries in this dashboard — top-20 quality-of-life cohort plus BRICS plus popular retirement destinations (orange). Higher is better on every axis.';
+        const cohortLabels = {
+          top20: 'Top-20 QoL median',
+          brics: 'BRICS median',
+          retirement: 'Retire-abroad median',
+          all: 'All-country median'
+        };
+        peerLabel = cohortLabels[state.cc] || 'Country median';
+        const cohortCodes = countriesInCohort(state.cc);
+        allRadars = cohortCodes.map(code => summarizeCountry(code).radar);
+        const cohortNotes = {
+          top20: 'top-20 quality-of-life cohort (Luxembourg, Netherlands, Denmark, etc.)',
+          brics: 'BRICS bloc (Brazil, Russia, India, China, South Africa)',
+          retirement: 'popular American retirement destinations (Mexico, Costa Rica, Portugal, etc.)',
+          all: 'all countries in the dashboard'
+        };
+        peerNote = `Numbeo sub-indices for the selected country (blue) vs. the ${cohortNotes[state.cc] || 'cohort'} median (orange dashed). Higher is better on every axis.`;
+        // Optional second-country comparison overlay.
+        if (state.vsc && state.vsc !== state.p && COUNTRIES[state.vsc]) {
+          const vsSum = summarizeCountry(state.vsc);
+          if (vsSum) {
+            comparisonRadar = vsSum.radar;
+            comparisonName = vsSum.name;
+          }
+        }
       } else {
         const c = summarizeCity(state.p);
         selectedRadar = c.radar;
@@ -895,9 +1029,22 @@
       const peerMedian = RADAR_KEYS.map(k => median(allRadars.map(r => r[k])));
 
       const datasets = [
-        { label: selectedName, data: selected, borderColor: '#185FA5', backgroundColor: 'rgba(55,138,221,0.20)', fill: true, pointRadius: 3, borderWidth: 2 },
-        { label: peerLabel, data: peerMedian, borderColor: '#C7522A', backgroundColor: 'rgba(199,82,42,0.10)', fill: false, pointRadius: 2, borderWidth: 2, borderDash: [4, 4] }
+        { label: selectedName, data: selected, borderColor: '#185FA5', backgroundColor: 'rgba(55,138,221,0.20)', fill: true, pointRadius: 3, borderWidth: 2 }
       ];
+      if (comparisonRadar && comparisonName) {
+        datasets.push({
+          label: comparisonName,
+          data: RADAR_KEYS.map(k => comparisonRadar[k]),
+          borderColor: '#2A8755',
+          backgroundColor: 'rgba(42,135,85,0.15)',
+          fill: true,
+          pointRadius: 3,
+          borderWidth: 2
+        });
+      }
+      datasets.push({
+        label: peerLabel, data: peerMedian, borderColor: '#C7522A', backgroundColor: 'rgba(199,82,42,0.10)', fill: false, pointRadius: 2, borderWidth: 2, borderDash: [4, 4]
+      });
 
       const noteEl = document.getElementById('radar-note');
       if (noteEl) noteEl.textContent = peerNote;
@@ -1271,6 +1418,19 @@
           applyToInputs();
           renderRentCompare();
           syncUrl();
+        });
+      });
+      $('#country-vs').addEventListener('change', () => {
+        state.vsc = $('#country-vs').value || '';
+        recompute();
+      });
+      $$('.cohort-chip').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const next = btn.dataset.cc;
+          if (next === state.cc) return;
+          state.cc = next;
+          applyToInputs();
+          recompute();
         });
       });
       $$('.rank-chip').forEach(c => {

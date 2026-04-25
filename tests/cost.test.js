@@ -7,6 +7,7 @@ import {
   householdMultiplier, householdLabel,
   feelsLikeRadar, takeHome, estimateStateTax, sqftAtBudget, sqftAtBuyBudget,
   housingComparison, rankFeelsLike, savingsCapacity, federalIncomeTax,
+  countryPurchasingPower, countriesInCohort, COUNTRY_COHORTS,
   US_CITIES, COUNTRIES, US_CITY_FEELS, US_CITY_BUY
 } from '../cost.js';
 
@@ -480,6 +481,47 @@ test('feelsLikeRadar: salary override changes savingsCap, not other axes', () =>
   assert.equal(base.afterTaxPower, userBig.afterTaxPower);
   assert.equal(base.housingValue, userBig.housingValue);
   assert.equal(base.cultural, userBig.cultural);
+});
+
+// ─── Country salary + cohort layer ──────────────────────────────────────────
+
+test('countryPurchasingPower: $80k US in Mexico is far higher in NYC-equivalent', () => {
+  const pp = countryPurchasingPower('MX', 80000);
+  assert.ok(pp);
+  assert.equal(pp.code, 'MX');
+  assert.ok(pp.nycEquivalent > 80000, `expected MX nycEquivalent > 80000, got ${pp.nycEquivalent}`);
+  assert.ok(pp.ratioVsLocal > 1, 'an $80k US salary far exceeds the local average');
+});
+
+test('countryPurchasingPower: high-cost market shrinks effective income', () => {
+  const ch = countryPurchasingPower('CH', 80000);  // Switzerland costOfLiving > 100
+  assert.ok(ch && ch.nycEquivalent < 80000);
+});
+
+test('countryPurchasingPower: junk inputs return null', () => {
+  assert.equal(countryPurchasingPower('zz', 80000), null);
+  assert.equal(countryPurchasingPower('MX', 0), null);
+  assert.equal(countryPurchasingPower('MX', -100), null);
+  assert.equal(countryPurchasingPower(null, 80000), null);
+});
+
+test('countriesInCohort: each cohort returns the expected codes', () => {
+  const top = countriesInCohort('top20');
+  assert.ok(top.length >= 18 && top.length <= 20);
+  assert.ok(top.includes('LU') && top.includes('US') && top.includes('JP'));
+
+  const brics = countriesInCohort('brics');
+  assert.deepEqual(brics.sort(), ['BR','CN','IN','RU','ZA']);
+
+  const retire = countriesInCohort('retirement');
+  assert.ok(retire.includes('MX') && retire.includes('PT') && retire.includes('TH'));
+
+  const all = countriesInCohort('all');
+  assert.equal(all.length, Object.keys(COUNTRIES).length);
+});
+
+test('countriesInCohort: unknown cohort name returns empty list', () => {
+  assert.deepEqual(countriesInCohort('zzzz'), []);
 });
 
 test('Commuter cohort: all expected cities are present and have full coverage', () => {

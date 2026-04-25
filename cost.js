@@ -160,6 +160,49 @@ export function rankUsCities({ sortBy = 'comfortableSalary', order = 'asc' } = {
   return all.sort(cmp);
 }
 
+// ─── Country cohorts (used for radar peer-median selection) ────────────────
+//
+// Tier-1 quality-of-life cohort (Numbeo's top 20 cross-referenced with
+// CEO World / OECD), the BRICS bloc, and a curated "popular American
+// retirement destinations" cohort. Useful as comparison reference sets.
+export const COUNTRY_COHORTS = {
+  top20:      ['LU','NL','DK','OM','CH','FI','NO','IS','AT','DE','AU','NZ','SE','US','EE','QA','JP','ES','SI','HR'],
+  brics:      ['BR','RU','IN','CN','ZA'],
+  retirement: ['MX','CR','PA','PT','IT','FR','TH','MY','CO','GR','PH'],
+  all:        []   // resolved at use time as Object.keys(COUNTRIES)
+};
+
+// Codes in the requested cohort that actually exist in COUNTRIES.
+export function countriesInCohort(cohort = 'all') {
+  if (cohort === 'all') return Object.keys(COUNTRIES);
+  const list = COUNTRY_COHORTS[cohort] || [];
+  return list.filter(c => COUNTRIES[c]);
+}
+
+// Cost-adjusted salary in a country: takes a USD salary and scales it by
+// the inverse of the country's Numbeo cost-of-living index (NYC=100). The
+// result is "what the same nominal money feels like in NYC-equivalent
+// purchasing power" — higher = your dollar goes further locally.
+//
+// Returns null for unknown countries or non-positive salaries.
+export function countryPurchasingPower(countryCode, salary) {
+  const c = COUNTRIES[countryCode?.toUpperCase?.()];
+  if (!c || !isFinite(salary) || salary <= 0) return null;
+  const cost = Math.max(c.costOfLiving, 1);
+  const equivalent = salary * (100 / cost);
+  const localAvg = c.avgSalary;
+  const ratioVsLocal = localAvg > 0 ? salary / localAvg : null;
+  return {
+    code: c.code,
+    name: c.name,
+    salary,
+    nycEquivalent: Math.round(equivalent),
+    localAvgSalary: localAvg,
+    ratioVsLocal,
+    costOfLivingIndex: c.costOfLiving
+  };
+}
+
 // All countries, sorted by a numeric field (default: numbeo index desc).
 //   sortBy: 'numbeoIndex' | 'ceoScore' | 'avgSalary' | 'effectivePP'
 //           | 'lifeExpectancy'
@@ -468,4 +511,5 @@ export function searchPlaces(query, { limit = 10 } = {}) {
   return out.slice(0, limit);
 }
 
-export { DATA_SOURCE, US_CITIES, COUNTRIES, US_CITY_FEELS, US_CITY_BUY, NATIONAL_LIVING_WAGE_SINGLE, NATIONAL_MEDIAN_WAGE, NATIONAL_RENT_2BR };
+export { DATA_SOURCE, US_CITIES, COUNTRIES, US_CITY_FEELS, US_CITY_BUY,
+         NATIONAL_LIVING_WAGE_SINGLE, NATIONAL_MEDIAN_WAGE, NATIONAL_RENT_2BR };
