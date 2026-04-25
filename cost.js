@@ -46,17 +46,45 @@ function cityRadar(c) {
   return { safety, health, purchasingPower, affordability, commute, propertyAffordability };
 }
 
+// Household-size multiplier vs. a single adult. Calibrated to MIT Living Wage:
+//   1A0C 1.00 · 2A0C 1.60 · 1A1C 1.50 · 1A2C 2.00 · 2A1C 2.10 · 2A2C 2.60
+// Formula: 1 + 0.6×(adults-1) + 0.5×children, with adults ≥ 1, children ≥ 0.
+// Children only scale food + healthcare + childcare, so the per-child weight
+// is intentionally lower than the per-adult weight even though children
+// also need housing space.
+export function householdMultiplier(adults = 1, children = 0) {
+  const a = Math.max(1, Math.floor(adults || 1));
+  const k = Math.max(0, Math.floor(children || 0));
+  return 1 + 0.6 * (a - 1) + 0.5 * k;
+}
+
+// Describe a household composition compactly (e.g. "2 adults, 1 child").
+export function householdLabel(adults = 1, children = 0) {
+  const a = Math.max(1, Math.floor(adults || 1));
+  const k = Math.max(0, Math.floor(children || 0));
+  const adultPart = a === 1 ? '1 adult' : `${a} adults`;
+  if (k === 0) return adultPart;
+  const childPart = k === 1 ? '1 child' : `${k} children`;
+  return `${adultPart}, ${childPart}`;
+}
+
 // Compute a cost-of-living summary for a single US city.
 //
 // Living wage single-adult is the BLS/MIT single-adult baseline, scaled by RPP.
 // Comfortable salary is what's needed to live comfortably (sourced/computed).
 // Affordability ratio = medianHouseholdIncome / comfortableSalary; <1 means
 // the typical household earns LESS than what's needed for comfort.
-export function summarizeCity(cityId) {
+//
+// Pass { adults, children } to also get household-scaled thresholds. Defaults
+// preserve v1 behavior (single adult, family-of-4 reference).
+export function summarizeCity(cityId, { adults = 1, children = 0 } = {}) {
   const c = US_CITIES[cityId];
   if (!c) return null;
   const livingWageSingle = NATIONAL_LIVING_WAGE_SINGLE * (c.rpp / 100);
   const livingWageFamily4 = livingWageSingle * 2.6; // MIT family-of-4 ratio
+  const hhMult = householdMultiplier(adults, children);
+  const livingWageHousehold = livingWageSingle * hhMult;
+  const comfortableHousehold = c.comfortableSalary * hhMult;
   const affordabilityRatio = c.medianHouseholdIncome / c.comfortableSalary;
   const wagePremium = (c.medianWage / NATIONAL_MEDIAN_WAGE - 1) * 100;
   const rentPremium = (c.rent2br / NATIONAL_RENT_2BR - 1) * 100;
@@ -69,6 +97,11 @@ export function summarizeCity(cityId) {
     comfortableSalary: c.comfortableSalary,
     livingWageSingle,
     livingWageFamily4,
+    livingWageHousehold,
+    comfortableHousehold,
+    householdMultiplier: hhMult,
+    householdAdults: Math.max(1, Math.floor(adults || 1)),
+    householdChildren: Math.max(0, Math.floor(children || 0)),
     affordabilityRatio,
     wagePremium,
     rentPremium,
@@ -139,14 +172,19 @@ export function rankCountries({ sortBy = 'numbeoIndex', order = 'desc' } = {}) {
 // Affordability gauge: maps the user's salary against three thresholds
 // (minimum living wage, median, comfortable). Returns the position 0-3 for
 // drawing the bullet chart, plus the threshold values themselves.
-export function affordabilityGauge(cityId, userSalary) {
-  const c = summarizeCity(cityId);
+//
+// Pass { adults, children } to scale the living-wage and comfortable
+// thresholds for the household; the median threshold is always the local
+// median household income (Census ACS already reflects mixed household
+// sizes). Default behavior is unchanged (single adult).
+export function affordabilityGauge(cityId, userSalary, { adults = 1, children = 0 } = {}) {
+  const c = summarizeCity(cityId, { adults, children });
   if (!c) return null;
   const thresholds = {
-    poverty: c.livingWageSingle * 0.6,
-    livingWage: c.livingWageSingle,
+    poverty: c.livingWageHousehold * 0.6,
+    livingWage: c.livingWageHousehold,
     median: c.medianHouseholdIncome,
-    comfortable: c.comfortableSalary
+    comfortable: c.comfortableHousehold
   };
   let band;
   if (!isFinite(userSalary)) band = null;

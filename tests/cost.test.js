@@ -4,6 +4,7 @@ import assert from 'node:assert/strict';
 import {
   resolvePlace, summarizeCity, summarizeCountry, rankUsCities,
   rankCountries, affordabilityGauge, searchPlaces,
+  householdMultiplier, householdLabel,
   US_CITIES, COUNTRIES
 } from '../cost.js';
 
@@ -217,4 +218,59 @@ test('cityRadar affordability: low-RPP city scores higher than high-RPP city', (
   const cheap  = summarizeCity('memphis');   // rpp ~91
   const pricy  = summarizeCity('san_jose');  // rpp ~124
   assert.ok(cheap.radar.affordability > pricy.radar.affordability);
+});
+
+// ─── household scaling ───────────────────────────────────────────────────────
+
+test('householdMultiplier: known MIT-calibrated points', () => {
+  close(householdMultiplier(1, 0), 1.00, 0.001);
+  close(householdMultiplier(2, 0), 1.60, 0.001);
+  close(householdMultiplier(1, 1), 1.50, 0.001);
+  close(householdMultiplier(1, 2), 2.00, 0.001);
+  close(householdMultiplier(2, 1), 2.10, 0.001);
+  close(householdMultiplier(2, 2), 2.60, 0.001);
+});
+
+test('householdMultiplier: clamps junk inputs to a single adult', () => {
+  close(householdMultiplier(0, 0), 1.00, 0.001);
+  close(householdMultiplier(-3, -2), 1.00, 0.001);
+  close(householdMultiplier(NaN, NaN), 1.00, 0.001);
+});
+
+test('householdLabel: pluralizes correctly', () => {
+  assert.equal(householdLabel(1, 0), '1 adult');
+  assert.equal(householdLabel(2, 0), '2 adults');
+  assert.equal(householdLabel(1, 1), '1 adult, 1 child');
+  assert.equal(householdLabel(2, 3), '2 adults, 3 children');
+});
+
+test('summarizeCity: household scaling raises living wage and comfortable thresholds', () => {
+  const single = summarizeCity('nyc');
+  const family = summarizeCity('nyc', { adults: 2, children: 2 });
+  close(family.householdMultiplier, 2.6, 0.001);
+  close(family.livingWageHousehold, single.livingWageSingle * 2.6, 0.5);
+  close(family.comfortableHousehold, single.comfortableSalary * 2.6, 0.5);
+  // single-adult fields stay anchored to a single adult.
+  assert.equal(family.livingWageSingle, single.livingWageSingle);
+});
+
+test('summarizeCity: default arguments preserve single-adult behavior', () => {
+  const a = summarizeCity('nyc');
+  const b = summarizeCity('nyc', { adults: 1, children: 0 });
+  assert.equal(a.livingWageHousehold, a.livingWageSingle);
+  assert.equal(a.comfortableHousehold, a.comfortableSalary);
+  assert.equal(a.householdMultiplier, 1);
+  assert.equal(a.livingWageHousehold, b.livingWageHousehold);
+});
+
+test('affordabilityGauge: thresholds scale with household', () => {
+  const single = affordabilityGauge('nyc', 100000);
+  const family = affordabilityGauge('nyc', 100000, { adults: 2, children: 2 });
+  assert.ok(family.thresholds.livingWage > single.thresholds.livingWage);
+  assert.ok(family.thresholds.comfortable > single.thresholds.comfortable);
+  // Median household income is anchored to Census ACS, not household-scaled.
+  assert.equal(single.thresholds.median, family.thresholds.median);
+  // Living wage rises with household, so the same income shifts toward "below
+  // living" for a family of 4 vs. a single adult.
+  assert.notEqual(single.band, family.band);
 });

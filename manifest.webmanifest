@@ -2,7 +2,7 @@
   "name": "Cost of living",
   "short_name": "Cost of living",
   "description": "Compare US cities and top global countries — living wage, comfortable salary, median income, life expectancy, and quality-of-life indices.",
-  "start_url": "/",
+  "start_url": "/?source=pwa",
   "scope": "/",
   "display": "standalone",
   "orientation": "portrait-primary",
@@ -14,5 +14,21 @@
     { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
     { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" },
     { "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ],
+  "id": "/",
+  "display_override": ["standalone", "minimal-ui"],
+  "prefer_related_applications": false,
+  "lang": "en-US",
+  "dir": "ltr",
+  "shortcuts": [
+    {
+      "name": "Cost of living",
+      "short_name": "Cost",
+      "description": "Open this extrautil tool",
+      "url": "/",
+      "icons": [
+        { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png" }
+      ]
+    }
   ]
 }

@@ -14,6 +14,7 @@
   <link rel="icon" type="image/svg+xml" href="/icon.svg" />
   <link rel="apple-touch-icon" href="/icon-192.png" />
   <link rel="manifest" href="/manifest.webmanifest" />
+  <script src="/pwa-install.js" defer></script>
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
@@ -293,6 +294,21 @@
       <label class="control-label" for="salary">Your salary</label>
       <input type="number" id="salary" min="0" step="1000" placeholder="e.g. 75000" />
     </div>
+    <div class="control-row" id="household-row">
+      <label class="control-label" for="adults">Household</label>
+      <select id="adults" aria-label="Number of adults">
+        <option value="1">1 adult</option>
+        <option value="2">2 adults</option>
+        <option value="3">3 adults</option>
+      </select>
+      <select id="children" aria-label="Number of children">
+        <option value="0">0 children</option>
+        <option value="1">1 child</option>
+        <option value="2">2 children</option>
+        <option value="3">3 children</option>
+        <option value="4">4 children</option>
+      </select>
+    </div>
   </div>
 
   <div class="result-block">
@@ -400,8 +416,21 @@
       affordabilityGauge, US_CITIES, COUNTRIES
     } from './cost.js';
 
-    const DEFAULTS = { p: 'nyc', s: '', r: 'us' };
-    const state = { p: DEFAULTS.p, s: DEFAULTS.s, r: DEFAULTS.r, embed: false, theme: null };
+    const DEFAULTS = { p: 'nyc', s: '', r: 'us', a: 1, k: 0 };
+    const state = { p: DEFAULTS.p, s: DEFAULTS.s, r: DEFAULTS.r, a: DEFAULTS.a, k: DEFAULTS.k, embed: false, theme: null };
+
+    function householdMultiplier(a, k) {
+      const ad = Math.max(1, Math.floor(a || 1));
+      const ch = Math.max(0, Math.floor(k || 0));
+      return 1 + 0.6 * (ad - 1) + 0.5 * ch;
+    }
+    function householdLabel(a, k) {
+      const ad = Math.max(1, Math.floor(a || 1));
+      const ch = Math.max(0, Math.floor(k || 0));
+      const adP = ad === 1 ? '1 adult' : `${ad} adults`;
+      if (ch === 0) return adP;
+      return `${adP}, ${ch === 1 ? '1 child' : ch + ' children'}`;
+    }
 
     function $(s) { return document.querySelector(s); }
     function $$(s) { return Array.from(document.querySelectorAll(s)); }
@@ -431,6 +460,10 @@
       state.s = isFinite(s) && s >= 0 ? s : DEFAULTS.s;
       const r = q.get('r');
       if (r === 'us' || r === 'country') state.r = r;
+      const a = parseInt(q.get('a'), 10);
+      if (isFinite(a) && a >= 1 && a <= 3) state.a = a;
+      const k = parseInt(q.get('k'), 10);
+      if (isFinite(k) && k >= 0 && k <= 4) state.k = k;
       state.embed = q.get('embed') === '1';
       const themeQ = q.get('theme');
       if (themeQ === 'light' || themeQ === 'dark') state.theme = themeQ;
@@ -441,6 +474,8 @@
       if (state.p !== DEFAULTS.p) q.set('p', state.p);
       if (state.s !== DEFAULTS.s) q.set('s', state.s);
       if (state.r !== DEFAULTS.r) q.set('r', state.r);
+      if (state.a !== DEFAULTS.a) q.set('a', state.a);
+      if (state.k !== DEFAULTS.k) q.set('k', state.k);
       if (state.theme) q.set('theme', state.theme);
       if (includeEmbed) q.set('embed', '1');
       return q.toString();
@@ -469,13 +504,21 @@
     function applyToInputs() {
       $('#place').value = state.p;
       $('#salary').value = state.s === '' ? '' : state.s;
+      $('#adults').value = String(state.a);
+      $('#children').value = String(state.k);
+      const place = resolvePlace(state.p);
+      const householdRow = $('#household-row');
+      if (householdRow) householdRow.style.display = place && place.kind === 'us' ? '' : 'none';
       $$('.rank-chip').forEach(c => c.classList.toggle('active', c.dataset.rank === state.r));
     }
 
     function describeScenario() {
       const place = resolvePlace(state.p);
       if (!place) return '';
-      if (place.kind === 'us') return `${place.name}, ${place.state} — US city snapshot`;
+      if (place.kind === 'us') {
+        const hh = householdLabel(state.a, state.k);
+        return `${place.name}, ${place.state} — ${hh}`;
+      }
       return `${place.name} — country quality-of-life snapshot`;
     }
 
@@ -490,21 +533,22 @@
       if (!place) { el.textContent = 'Pick a place to begin.'; return; }
 
       if (place.kind === 'us') {
-        const c = summarizeCity(state.p);
+        const c = summarizeCity(state.p, { adults: state.a, children: state.k });
         const userS = parseFloat(state.s);
+        const hhSuffix = (state.a > 1 || state.k > 0) ? ` (${householdLabel(state.a, state.k)})` : '';
         if (isFinite(userS) && userS > 0) {
-          const ratio = userS / c.comfortableSalary;
+          const ratio = userS / c.comfortableHousehold;
           if (ratio >= 1) {
-            el.innerHTML = `<strong>${fmtMoney(userS, { compact: true })}</strong> in ${c.name} is comfortable — ${fmtPct((ratio - 1) * 100)} above the local "comfortable" threshold.`;
+            el.innerHTML = `<strong>${fmtMoney(userS, { compact: true })}</strong> in ${c.name} is comfortable${hhSuffix} — ${fmtPct((ratio - 1) * 100)} above your household's "comfortable" threshold of ${fmtMoney(c.comfortableHousehold, { compact: true })}.`;
           } else if (userS >= c.medianHouseholdIncome) {
-            el.innerHTML = `<strong>${fmtMoney(userS, { compact: true })}</strong> in ${c.name} beats the median household but falls <em>${fmtPct((1 - ratio) * 100)}</em> short of the comfortable threshold.`;
-          } else if (userS >= c.livingWageSingle) {
-            el.innerHTML = `<strong>${fmtMoney(userS, { compact: true })}</strong> in ${c.name} covers the local living wage but lands below the median household income of ${fmtMoney(c.medianHouseholdIncome, { compact: true })}.`;
+            el.innerHTML = `<strong>${fmtMoney(userS, { compact: true })}</strong> in ${c.name} beats the median household but falls <em>${fmtPct((1 - ratio) * 100)}</em> short of the comfortable threshold for ${householdLabel(state.a, state.k)} (${fmtMoney(c.comfortableHousehold, { compact: true })}).`;
+          } else if (userS >= c.livingWageHousehold) {
+            el.innerHTML = `<strong>${fmtMoney(userS, { compact: true })}</strong> in ${c.name} covers the living wage for ${householdLabel(state.a, state.k)} but lands below the local median household income of ${fmtMoney(c.medianHouseholdIncome, { compact: true })}.`;
           } else {
-            el.innerHTML = `<strong>${fmtMoney(userS, { compact: true })}</strong> in ${c.name} is <em>below</em> the living wage of ${fmtMoney(c.livingWageSingle, { compact: true })} for a single adult.`;
+            el.innerHTML = `<strong>${fmtMoney(userS, { compact: true })}</strong> in ${c.name} is <em>below</em> the living wage of ${fmtMoney(c.livingWageHousehold, { compact: true })} for ${householdLabel(state.a, state.k)}.`;
           }
         } else {
-          el.innerHTML = `<strong>${c.name}, ${c.state}</strong> — comfortable salary <strong>${fmtMoney(c.comfortableSalary, { compact: true })}</strong>, RPP <strong>${fmtNum(c.rpp, 1)}</strong> (${c.rpp > 100 ? 'above' : 'below'} US average).`;
+          el.innerHTML = `<strong>${c.name}, ${c.state}</strong> — comfortable salary for ${householdLabel(state.a, state.k)} <strong>${fmtMoney(c.comfortableHousehold, { compact: true })}</strong>, RPP <strong>${fmtNum(c.rpp, 1)}</strong> (${c.rpp > 100 ? 'above' : 'below'} US average).`;
         }
       } else {
         const c = summarizeCountry(state.p);
@@ -518,10 +562,19 @@
       if (!place) { el.innerHTML = ''; return; }
 
       if (place.kind === 'us') {
-        const c = summarizeCity(state.p);
+        const c = summarizeCity(state.p, { adults: state.a, children: state.k });
+        const hh = householdLabel(state.a, state.k);
+        const isFamily = state.a > 1 || state.k > 0;
+        const comfortLabel = isFamily ? `Comfortable salary · ${hh}` : 'Comfortable salary';
+        const comfortValue = isFamily ? c.comfortableHousehold : c.comfortableSalary;
+        const comfortSub = isFamily
+          ? `${fmtNum(c.householdMultiplier, 2)}× single-adult baseline`
+          : 'Visual Capitalist 2025';
+        const livingLabel = isFamily ? `Living wage · ${hh}` : 'Living wage (single)';
+        const livingValue = isFamily ? c.livingWageHousehold : c.livingWageSingle;
         el.innerHTML = [
-          card('Comfortable salary', fmtMoney(c.comfortableSalary, { compact: true }), 'Visual Capitalist 2025', 'accent'),
-          card('Living wage (single)', fmtMoney(c.livingWageSingle, { compact: true }), 'MIT methodology'),
+          card(comfortLabel, fmtMoney(comfortValue, { compact: true }), comfortSub, 'accent'),
+          card(livingLabel, fmtMoney(livingValue, { compact: true }), 'MIT methodology'),
           card('Median household', fmtMoney(c.medianHouseholdIncome, { compact: true }), 'Census ACS'),
           card('2BR rent / mo', fmtMoney(c.rent2br, { compact: true }), `HUD FMR · ${fmtPct(c.rentPremium, 0)} vs US`),
           card('RPP (US=100)', fmtNum(c.rpp, 1), c.rpp > 100 ? 'pricier than avg' : 'cheaper than avg'),
@@ -548,22 +601,22 @@
       const place = resolvePlace(state.p);
       const wrap = $('#gauge-wrap');
       if (!place || place.kind !== 'us') { wrap.hidden = true; return; }
-      const c = summarizeCity(state.p);
+      const c = summarizeCity(state.p, { adults: state.a, children: state.k });
       const userS = parseFloat(state.s);
 
-      // Scale: 0 → 1.5× comfortable salary
-      const max = c.comfortableSalary * 1.5;
+      // Scale: 0 → 1.5× household comfortable salary
+      const max = c.comfortableHousehold * 1.5;
       const pct = (v) => Math.max(0, Math.min(100, (v / max) * 100));
 
-      const lw = pct(c.livingWageSingle);
+      const lw = pct(c.livingWageHousehold);
       const med = pct(c.medianHouseholdIncome);
-      const cmf = pct(c.comfortableSalary);
+      const cmf = pct(c.comfortableHousehold);
 
       // 4 colored bands: 0→livingWage red, →median amber, →comfort green-light, →end green
       $('#b1').style.left = '0%';   $('#b1').style.width = lw + '%';
-      $('#b2').style.left = lw + '%'; $('#b2').style.width = (med - lw) + '%';
-      $('#b3').style.left = med + '%'; $('#b3').style.width = (cmf - med) + '%';
-      $('#b4').style.left = cmf + '%'; $('#b4').style.width = (100 - cmf) + '%';
+      $('#b2').style.left = lw + '%'; $('#b2').style.width = Math.max(0, med - lw) + '%';
+      $('#b3').style.left = med + '%'; $('#b3').style.width = Math.max(0, cmf - med) + '%';
+      $('#b4').style.left = cmf + '%'; $('#b4').style.width = Math.max(0, 100 - cmf) + '%';
 
       const marker = $('#marker');
       if (isFinite(userS) && userS > 0) {
@@ -575,10 +628,15 @@
 
       $('#gauge-axis').innerHTML = `
         <span>$0</span>
-        <span style="margin-left:auto;">${fmtMoney(c.livingWageSingle, { compact: true })} living</span>
+        <span style="margin-left:auto;">${fmtMoney(c.livingWageHousehold, { compact: true })} living</span>
         <span style="margin-left:auto;">${fmtMoney(c.medianHouseholdIncome, { compact: true })} median</span>
-        <span style="margin-left:auto;">${fmtMoney(c.comfortableSalary, { compact: true })} comfort</span>
+        <span style="margin-left:auto;">${fmtMoney(c.comfortableHousehold, { compact: true })} comfort</span>
       `;
+      const title = $('.gauge-title');
+      if (title) {
+        const hhSuffix = (state.a > 1 || state.k > 0) ? ` · ${householdLabel(state.a, state.k)}` : '';
+        title.textContent = `Affordability gauge — your salary vs. local thresholds${hhSuffix}`;
+      }
 
       wrap.hidden = false;
     }
@@ -757,10 +815,24 @@
     }
 
     function bindEvents() {
-      $('#place').addEventListener('change', () => { state.p = $('#place').value; recompute(); });
+      $('#place').addEventListener('change', () => {
+        state.p = $('#place').value;
+        applyToInputs();
+        recompute();
+      });
       $('#salary').addEventListener('input', () => {
         const v = parseFloat($('#salary').value);
         state.s = isFinite(v) && v >= 0 ? v : '';
+        recompute();
+      });
+      $('#adults').addEventListener('change', () => {
+        const v = parseInt($('#adults').value, 10);
+        state.a = isFinite(v) && v >= 1 ? v : 1;
+        recompute();
+      });
+      $('#children').addEventListener('change', () => {
+        const v = parseInt($('#children').value, 10);
+        state.k = isFinite(v) && v >= 0 ? v : 0;
         recompute();
       });
       $$('.rank-chip').forEach(c => {
