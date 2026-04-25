@@ -1,4 +1,4 @@
-const CACHE = 'extrautil-v1';
+const CACHE = 'extrautil-v2';
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();

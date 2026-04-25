@@ -188,3 +188,33 @@ test('every US city has comfortable salary > living wage single', () => {
     assert.ok(s.comfortableSalary > s.livingWageSingle, `${id} comfort=${s.comfortableSalary} living=${s.livingWageSingle}`);
   }
 });
+
+// ─── Radar (city + country share 6 axes) ─────────────────────────────────────
+
+test('summarizeCity exposes 6-axis radar with all keys 0..150', () => {
+  const s = summarizeCity('austin');
+  assert.ok(s.radar);
+  for (const k of ['safety', 'health', 'purchasingPower', 'affordability', 'commute', 'propertyAffordability']) {
+    assert.ok(typeof s.radar[k] === 'number', `${k} missing or non-number`);
+    assert.ok(s.radar[k] >= 0 && s.radar[k] <= 150, `${k}=${s.radar[k]} out of range`);
+  }
+});
+
+test('summarizeCountry exposes 6-axis radar with same key shape as city', () => {
+  const c = summarizeCountry('LU');
+  for (const k of ['safety', 'health', 'purchasingPower', 'affordability', 'commute', 'propertyAffordability']) {
+    assert.ok(typeof c.radar[k] === 'number', `${k} missing`);
+  }
+});
+
+test('cityRadar safety: high-crime city scores lower than low-crime city', () => {
+  const safe   = summarizeCity('raleigh');   // crime ~188
+  const unsafe = summarizeCity('memphis');   // crime ~2470
+  assert.ok(safe.radar.safety > unsafe.radar.safety);
+});
+
+test('cityRadar affordability: low-RPP city scores higher than high-RPP city', () => {
+  const cheap  = summarizeCity('memphis');   // rpp ~91
+  const pricy  = summarizeCity('san_jose');  // rpp ~124
+  assert.ok(cheap.radar.affordability > pricy.radar.affordability);
+});

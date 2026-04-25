@@ -322,11 +322,11 @@
   <hr class="divider" />
 
   <details class="collapsible" id="radar-details" open>
-    <summary><span>Quality-of-life radar (countries)</span></summary>
+    <summary><span>Quality-of-life radar</span></summary>
     <div class="chart-wrap">
       <canvas id="radar" role="img" aria-label="Quality of life radar chart"></canvas>
     </div>
-    <p style="font-size:11px;color:var(--dim);margin:8px 0 0;">Numbeo sub-indices for the selected country (blue) versus the global top-20 median (orange). Higher is better on every axis; affordability axis inverts cost-of-living.</p>
+    <p style="font-size:11px;color:var(--dim);margin:8px 0 0;" id="radar-note">Six-axis radar: selected place (blue) vs. peer-group median (orange). Higher is better on every axis. Affordability inverts cost; safety inverts crime.</p>
   </details>
 
   <details class="collapsible" id="ranking-details">
@@ -588,40 +588,55 @@
     }
 
     let radarChart;
+    const RADAR_KEYS = ['safety', 'health', 'purchasingPower', 'affordability', 'commute', 'propertyAffordability'];
+    const RADAR_LABELS = ['Safety', 'Health', 'Purchasing\nPower', 'Affordability', 'Commute', 'Property\naffordability'];
+    const median = (arr) => { const s = [...arr].sort((a,b) => a - b); return s[Math.floor(s.length / 2)]; };
+
     function renderRadar() {
       const place = resolvePlace(state.p);
       const ctx = document.getElementById('radar');
       if (!ctx) return;
-      // Hide chart entirely for US cities; radar only meaningful for countries
-      if (!place || place.kind !== 'country') {
+      if (!place) {
         if (radarChart) { radarChart.destroy(); radarChart = null; }
-        ctx.style.opacity = '0.25';
         return;
       }
-      ctx.style.opacity = '1';
-      const c = summarizeCountry(state.p);
-      const labels = ['Safety', 'Health', 'Purchasing\nPower', 'Cleanness', 'Climate', 'Affordability', 'Property\naffordability', 'Commute'];
-      const selected = [c.radar.safety, c.radar.health, c.radar.purchasingPower, c.radar.pollutionCleanness, c.radar.climate, c.radar.affordability, c.radar.propertyAffordability, c.radar.trafficCommute];
-      // Median of all 20 countries on each axis
-      const all = Object.values(COUNTRIES).map(x => summarizeCountry(x.code).radar);
-      const median = (arr) => { const s = [...arr].sort((a,b) => a - b); return s[Math.floor(s.length / 2)]; };
-      const median20 = labels.map((_, i) => {
-        const key = ['safety', 'health', 'purchasingPower', 'pollutionCleanness', 'climate', 'affordability', 'propertyAffordability', 'trafficCommute'][i];
-        return median(all.map(r => r[key]));
-      });
+
+      let selectedRadar, selectedName, peerLabel, allRadars, peerNote;
+      if (place.kind === 'country') {
+        const c = summarizeCountry(state.p);
+        selectedRadar = c.radar;
+        selectedName = c.name;
+        peerLabel = 'Top-20 median';
+        allRadars = Object.values(COUNTRIES).map(x => summarizeCountry(x.code).radar);
+        peerNote = 'Numbeo sub-indices for the selected country (blue) vs. the top-20 median (orange). Higher is better on every axis.';
+      } else {
+        const c = summarizeCity(state.p);
+        selectedRadar = c.radar;
+        selectedName = `${c.name}, ${c.state}`;
+        peerLabel = '40-city median';
+        allRadars = Object.values(US_CITIES).map(x => summarizeCity(x.id).radar);
+        peerNote = 'Six axes derived from federal data: Safety (FBI UCR crime, inverted), Health (CDC life expectancy), Purchasing Power (Census ACS median household income), Affordability (BEA RPP, inverted), Commute (ACS, shorter = better), Property Affordability (rent-to-income ratio).';
+      }
+
+      const selected = RADAR_KEYS.map(k => selectedRadar[k]);
+      const peerMedian = RADAR_KEYS.map(k => median(allRadars.map(r => r[k])));
 
       const datasets = [
-        { label: c.name, data: selected, borderColor: '#185FA5', backgroundColor: 'rgba(55,138,221,0.20)', fill: true, pointRadius: 3, borderWidth: 2 },
-        { label: 'Top-20 median', data: median20, borderColor: '#C7522A', backgroundColor: 'rgba(199,82,42,0.10)', fill: false, pointRadius: 2, borderWidth: 2, borderDash: [4, 4] }
+        { label: selectedName, data: selected, borderColor: '#185FA5', backgroundColor: 'rgba(55,138,221,0.20)', fill: true, pointRadius: 3, borderWidth: 2 },
+        { label: peerLabel, data: peerMedian, borderColor: '#C7522A', backgroundColor: 'rgba(199,82,42,0.10)', fill: false, pointRadius: 2, borderWidth: 2, borderDash: [4, 4] }
       ];
 
+      const noteEl = document.getElementById('radar-note');
+      if (noteEl) noteEl.textContent = peerNote;
+
       if (radarChart) {
+        radarChart.data.labels = RADAR_LABELS;
         radarChart.data.datasets = datasets;
         radarChart.update('none');
       } else {
         radarChart = new Chart(ctx, {
           type: 'radar',
-          data: { labels, datasets },
+          data: { labels: RADAR_LABELS, datasets },
           options: {
             responsive: true, maintainAspectRatio: false,
             plugins: {

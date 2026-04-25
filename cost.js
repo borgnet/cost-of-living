@@ -16,6 +16,36 @@ export function resolvePlace(placeId) {
   return null;
 }
 
+// Clamp helper.
+const clamp = (v, lo = 0, hi = 100) => Math.max(lo, Math.min(hi, v));
+
+// Derive a 6-axis radar for a US city using only the data we have:
+//   safety               from FBI UCR violent-crime rate (lower = safer)
+//   health               from CDC life expectancy at birth
+//   purchasingPower      from Census ACS median household income
+//   affordability        from BEA RPP (lower RPP = more affordable)
+//   commute              from Census ACS mean commute (shorter = better)
+//   propertyAffordability from rent-to-income ratio (HUD FMR / Census ACS)
+// Each axis is normalized to 0-100 (higher = better) so the chart shape
+// is intuitively "bigger area = better".
+function cityRadar(c) {
+  // Safety: crime ~ 100/100k → 93; ~1500 → 7; clamp.
+  const safety = clamp(100 - (c.crimeRate - 100) / 15);
+  // Health: life expectancy 70 → 0, 84 → 98.
+  const health = clamp((c.lifeExpectancy - 70) * 7);
+  // Purchasing power: indexed against a $65K national median household, ×70 so a
+  // $93K household ≈ 100. Clamp at 150 to avoid SF/SJ pushing the chart edge.
+  const purchasingPower = clamp((c.medianHouseholdIncome / 65000) * 70, 0, 150);
+  // Affordability: RPP 100 → 100, RPP 125 → 75, RPP 90 → 110 (clamped).
+  const affordability = clamp(200 - c.rpp);
+  // Commute: 15min → 100, 35min → 60, 60min → 10. Clamp.
+  const commute = clamp(100 - (c.commuteMin - 15) * 2);
+  // Property affordability: annual rent / median HH income. < 18% → ~100, > 50% → 0.
+  const burden = (c.rent2br * 12) / c.medianHouseholdIncome;
+  const propertyAffordability = clamp(100 - (burden - 0.18) * 250);
+  return { safety, health, purchasingPower, affordability, commute, propertyAffordability };
+}
+
 // Compute a cost-of-living summary for a single US city.
 //
 // Living wage single-adult is the BLS/MIT single-adult baseline, scaled by RPP.
@@ -44,7 +74,8 @@ export function summarizeCity(cityId) {
     rentPremium,
     lifeExpectancy: c.lifeExpectancy,
     crimeRate: c.crimeRate,
-    commuteMin: c.commuteMin
+    commuteMin: c.commuteMin,
+    radar: cityRadar(c)
   };
 }
 
@@ -63,16 +94,15 @@ export function summarizeCountry(code) {
     avgSalary: c.avgSalary,
     lifeExpectancy: c.lifeExpectancy,
     effectivePP,
+    // 6-axis radar matching cityRadar's keys so the UI can compare like-for-like.
     radar: {
       safety: c.safety,
       health: c.health,
       purchasingPower: c.purchasingPower,
-      pollutionCleanness: c.pollutionCleanness,
-      climate: c.climate,
-      // Invert costOfLiving so higher = more affordable (intuitive in radar)
-      affordability: Math.max(0, 100 - c.costOfLiving + 50),
-      propertyAffordability: c.propertyAffordability,
-      trafficCommute: c.trafficCommute
+      // Invert costOfLiving so higher = more affordable (intuitive in radar).
+      affordability: clamp(100 - c.costOfLiving + 50),
+      commute: c.trafficCommute,
+      propertyAffordability: c.propertyAffordability
     },
     sub: {
       safety: c.safety,
