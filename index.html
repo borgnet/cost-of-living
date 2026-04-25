@@ -1,0 +1,822 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <title>Cost of Living &amp; Quality of Life — Compare US Cities and Top Global Countries</title>
+  <meta name="description" content="Free interactive cost-of-living and quality-of-life dashboard. Compare any of 40 major US cities or top-20 global countries. Living wage, comfortable salary, median income, rent, life expectancy, crime, commute — sourced from BEA, BLS, HUD, Census, CDC, and Numbeo. URL-shareable, embeddable, PWA-installable." />
+  <meta name="keywords" content="cost of living, quality of life, living wage, comfortable salary, BEA RPP, BLS OEWS, HUD FMR, Census ACS, Numbeo, US cities, country comparison, relocation calculator" />
+  <meta name="robots" content="index, follow" />
+  <meta name="theme-color" content="#185FA5" />
+  <meta name="google-adsense-account" content="ca-pub-6522968404898274" />
+  <link rel="canonical" href="https://cost.extrautil.com/" />
+  <link rel="icon" type="image/svg+xml" href="/icon.svg" />
+  <link rel="apple-touch-icon" href="/icon-192.png" />
+  <link rel="manifest" href="/manifest.webmanifest" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="Cost of living" />
+
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://cost.extrautil.com/" />
+  <meta property="og:title" content="Cost of Living &amp; Quality of Life" />
+  <meta property="og:description" content="Compare US cities and top global countries — living wage, comfortable salary, median income, life expectancy, and quality-of-life indices in one dashboard." />
+  <meta property="og:site_name" content="extrautil" />
+  <meta property="og:image" content="https://cost.extrautil.com/og-image.png" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="Cost of Living &amp; Quality of Life" />
+  <meta name="twitter:description" content="Compare US cities and top global countries on one dashboard." />
+  <meta name="twitter:image" content="https://cost.extrautil.com/og-image.png" />
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebApplication",
+    "name": "Cost of Living & Quality of Life",
+    "url": "https://cost.extrautil.com/",
+    "description": "Free interactive cost-of-living and quality-of-life dashboard for US cities and top global countries.",
+    "applicationCategory": "FinanceApplication",
+    "operatingSystem": "Any",
+    "browserRequirements": "Requires JavaScript",
+    "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+    "potentialAction": {
+      "@type": "ConsumeAction",
+      "target": {
+        "@type": "EntryPoint",
+        "urlTemplate": "https://cost.extrautil.com/?p={place}&s={salary}&theme={theme}&embed={embed_flag}",
+        "actionPlatform": ["http://schema.org/DesktopWebPlatform", "http://schema.org/MobileWebPlatform"]
+      }
+    }
+  }
+  </script>
+
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-DE0V0N6E8W"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-DE0V0N6E8W');
+  </script>
+
+  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6522968404898274"
+          crossorigin="anonymous"></script>
+
+  <style>
+    :root {
+      --bg: #fff;
+      --fg: #111;
+      --muted: #666;
+      --dim: #999;
+      --card: #f5f5f3;
+      --border: rgba(0,0,0,0.15);
+      --border-soft: rgba(0,0,0,0.08);
+      --grid: rgba(128,128,128,0.1);
+      --accent: #185FA5;
+      --accent-soft: #B5D4F4;
+      --accent-fill: rgba(55,138,221,0.15);
+      --b-accent: #C7522A;
+      --b-fill: rgba(199,82,42,0.12);
+      --g-accent: #2A8755;
+      --g-fill: rgba(42,135,85,0.12);
+    }
+    [data-theme="dark"] {
+      --bg: #1a1a18;
+      --fg: #f0ede8;
+      --muted: #999;
+      --dim: #666;
+      --card: #2a2a28;
+      --border: rgba(255,255,255,0.15);
+      --border-soft: rgba(255,255,255,0.08);
+      --grid: rgba(255,255,255,0.08);
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      max-width: 780px;
+      margin: 1.5rem auto;
+      padding: 0 1.5rem;
+      background: var(--bg);
+      color: var(--fg);
+    }
+
+    .topbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.25rem; }
+    .brand { display: flex; align-items: center; gap: 10px; }
+    .brand-logo { width: 28px; height: 28px; flex: 0 0 28px; }
+    .brand h1 { font-size: 18px; font-weight: 500; margin: 0; }
+    .icon-btn {
+      background: var(--card); border: 0.5px solid var(--border); border-radius: 8px;
+      width: 34px; height: 34px;
+      display: inline-flex; align-items: center; justify-content: center;
+      cursor: pointer; color: var(--fg); font-size: 14px; padding: 0;
+    }
+    .icon-btn:hover { background: var(--border-soft); }
+
+    .scenario-summary { display: none; font-size: 12px; color: var(--muted); margin: 0 0 0.75rem; line-height: 1.45; }
+    body.embed .scenario-summary { display: block; }
+
+    .result-block { background: var(--card); border-radius: 12px; padding: 1.25rem 1.25rem 1rem; margin-bottom: 1rem; }
+    .headline { font-size: 17px; line-height: 1.5; margin: 0 0 0.85rem; color: var(--fg); }
+    .headline strong { color: var(--accent); font-size: 22px; font-weight: 600; white-space: nowrap; }
+    .headline em { font-style: normal; color: var(--b-accent); font-weight: 600; }
+
+    .stats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+    @media (min-width: 560px) { .stats { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+    .stat-card {
+      background: var(--bg); border: 0.5px solid var(--border-soft);
+      border-radius: 8px; padding: 0.7rem 0.85rem; min-width: 0;
+    }
+    .stat-label { font-size: 11px; color: var(--muted); margin: 0 0 4px; text-transform: uppercase; letter-spacing: 0.04em; }
+    .stat-value { font-size: 17px; font-weight: 500; margin: 0; line-height: 1.2; word-break: break-word; }
+    .stat-sub { font-size: 11px; color: var(--dim); margin: 4px 0 0; }
+    .stat-card.accent .stat-value { color: var(--accent); }
+    .stat-card.warn .stat-value { color: var(--b-accent); }
+    .stat-card.good .stat-value { color: var(--g-accent); }
+
+    .controls { display: flex; flex-direction: column; gap: 10px; margin-bottom: 1rem; }
+    .control-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+    .control-label { font-size: 13px; color: var(--muted); min-width: 110px; }
+    .control-row select, .control-row input {
+      flex: 1;
+      background: var(--card); border: 0.5px solid var(--border); border-radius: 8px;
+      padding: 0 10px; height: 36px; font-size: 13px; color: var(--fg);
+      outline: none; min-width: 0; font-family: inherit;
+    }
+    .control-row select:focus, .control-row input:focus { outline: 1px solid var(--accent); }
+
+    optgroup { font-style: normal; font-weight: 600; color: var(--muted); }
+
+    .toggles { display: flex; flex-wrap: wrap; gap: 8px; margin: 0.25rem 0 1.25rem; }
+    .chip {
+      background: var(--card); border: 0.5px solid var(--border); border-radius: 999px;
+      padding: 6px 12px; font-size: 12px; color: var(--muted); cursor: pointer;
+      transition: background 0.1s, color 0.1s;
+    }
+    .chip:hover { color: var(--fg); }
+    .chip.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+    .chip-reset {
+      margin-left: auto; color: var(--b-accent); border-color: rgba(199,82,42,0.4); font-weight: 500;
+    }
+    .chip-reset:hover { background: rgba(199,82,42,0.12); color: var(--b-accent); border-color: var(--b-accent); }
+
+    /* Affordability gauge — bullet chart */
+    .gauge-wrap { margin-top: 1rem; }
+    .gauge-title { font-size: 12px; color: var(--muted); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.04em; }
+    .gauge {
+      position: relative; height: 30px; border-radius: 6px; background: var(--bg);
+      border: 0.5px solid var(--border-soft); overflow: hidden;
+    }
+    .gauge .band { position: absolute; top: 0; bottom: 0; }
+    .gauge .band.b1 { background: rgba(199,82,42,0.55); }
+    .gauge .band.b2 { background: rgba(199,82,42,0.30); }
+    .gauge .band.b3 { background: rgba(42,135,85,0.30); }
+    .gauge .band.b4 { background: rgba(42,135,85,0.55); }
+    .gauge .marker {
+      position: absolute; top: -3px; bottom: -3px; width: 3px;
+      background: var(--fg); border-radius: 1px;
+    }
+    .gauge-axis { display: flex; justify-content: space-between; font-size: 10px; color: var(--dim); margin-top: 4px; }
+
+    details.collapsible {
+      border-top: 1px solid var(--border-soft); margin-top: 1.5rem; padding-top: 0.75rem;
+    }
+    details.collapsible > summary {
+      cursor: pointer; font-size: 13px; color: var(--muted);
+      list-style: none; display: flex; align-items: center; justify-content: space-between;
+    }
+    details.collapsible > summary::-webkit-details-marker { display: none; }
+    details.collapsible > summary::before {
+      content: "▸"; margin-right: 6px; font-size: 10px; transition: transform 0.15s;
+    }
+    details.collapsible[open] > summary::before { transform: rotate(90deg); display: inline-block; }
+
+    .data-table { width: 100%; border-collapse: collapse; margin-top: 0.75rem; font-size: 12px; }
+    .data-table th, .data-table td {
+      text-align: right; padding: 6px 8px; border-bottom: 1px solid var(--border-soft);
+    }
+    .data-table th { color: var(--muted); font-weight: 500; cursor: pointer; }
+    .data-table th.sort-asc::after { content: " ▲"; }
+    .data-table th.sort-desc::after { content: " ▼"; }
+    .data-table th:first-child, .data-table td:first-child { text-align: left; }
+    .data-table tr.selected td { background: var(--accent-fill); }
+
+    .chart-wrap { position: relative; width: 100%; height: 280px; margin-top: 0.85rem; }
+
+    .faq { margin-top: 2.5rem; padding-top: 1.5rem; border-top: 1px solid var(--border-soft); }
+    .faq h2 { font-size: 14px; font-weight: 500; margin: 0 0 0.75rem; }
+    .faq details { border-bottom: 1px solid var(--border-soft); padding: 0.75rem 0; }
+    .faq summary {
+      cursor: pointer; font-size: 13px; color: var(--fg); list-style: none;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .faq summary::-webkit-details-marker { display: none; }
+    .faq summary::after { content: "+"; color: var(--muted); font-size: 16px; line-height: 1; }
+    .faq details[open] summary::after { content: "−"; }
+    .faq details > p { font-size: 13px; color: var(--muted); line-height: 1.55; margin: 0.5rem 0 0; }
+
+    .about {
+      margin-top: 2rem; padding-top: 1.25rem;
+      border-top: 1px solid var(--border-soft);
+      font-size: 12px; color: var(--dim); line-height: 1.55;
+    }
+    .about p { margin: 0 0 0.5rem; }
+    .about a { color: var(--accent); text-decoration: none; }
+    .about a:hover { text-decoration: underline; }
+
+    @media (max-width: 520px) {
+      .stat-value { font-size: 15px; }
+      .headline { font-size: 15px; }
+      .headline strong { font-size: 19px; }
+      .control-label { min-width: 95px; }
+      .data-table { font-size: 11px; }
+      .data-table th, .data-table td { padding: 5px 6px; }
+    }
+
+    .divider { border: none; height: 1px; background: var(--border-soft); margin: 1.75rem 0 1.25rem; }
+
+    .scroll-top {
+      position: fixed; bottom: 1.25rem; right: 1.25rem;
+      width: 40px; height: 40px; border-radius: 8px;
+      background: rgba(24, 95, 165, 0.55); color: #fff; border: none;
+      font-size: 18px; line-height: 1; cursor: pointer;
+      opacity: 0; pointer-events: none;
+      transition: opacity 0.2s ease, background 0.15s ease, transform 0.15s ease;
+      z-index: 100;
+      display: flex; align-items: center; justify-content: center;
+      backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);
+    }
+    .scroll-top:hover { background: rgba(24, 95, 165, 0.85); transform: translateY(-1px); }
+    .scroll-top.visible { opacity: 1; pointer-events: auto; }
+    body.embed .scroll-top { display: none !important; }
+
+    .embed-footer { display: none; }
+    body.embed { margin: 0.75rem auto; max-width: 100%; padding: 0 1rem; }
+    body.embed .divider, body.embed .toggles, body.embed details.collapsible,
+    body.embed .faq, body.embed .about, body.embed #theme-toggle { display: none !important; }
+    body.embed .topbar { margin-bottom: 0.5rem; }
+    body.embed .brand h1 { font-size: 15px; }
+    body.embed .brand-logo { width: 22px; height: 22px; flex-basis: 22px; }
+    body.embed .embed-footer {
+      display: block; margin-top: 10px; font-size: 11px;
+      color: var(--dim); text-align: right; text-decoration: none;
+    }
+  </style>
+</head>
+<body>
+  <main>
+  <header class="topbar">
+    <div class="brand">
+      <svg class="brand-logo" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <rect width="64" height="64" rx="14" fill="#185FA5"/>
+        <path d="M 32 14 L 50 30 L 44 30 L 44 50 L 36 50 L 36 38 L 28 38 L 28 50 L 20 50 L 20 30 L 14 30 Z" fill="#fff"/>
+      </svg>
+      <h1>Cost of living</h1>
+    </div>
+    <button id="theme-toggle" class="icon-btn" aria-label="Toggle dark mode" title="Toggle theme">
+      <span id="theme-icon">☀</span>
+    </button>
+  </header>
+
+  <p class="scenario-summary" id="scenario-summary"></p>
+
+  <div class="controls">
+    <div class="control-row">
+      <label class="control-label" for="place">Place</label>
+      <select id="place" aria-label="Pick a city or country"></select>
+    </div>
+    <div class="control-row" id="salary-row">
+      <label class="control-label" for="salary">Your salary</label>
+      <input type="number" id="salary" min="0" step="1000" placeholder="e.g. 75000" />
+    </div>
+  </div>
+
+  <div class="result-block">
+    <p class="headline" id="headline"></p>
+    <div class="stats" id="stats"></div>
+    <div class="gauge-wrap" id="gauge-wrap" hidden>
+      <p class="gauge-title">Affordability gauge — your salary vs. local thresholds</p>
+      <div class="gauge" id="gauge">
+        <div class="band b1" id="b1"></div>
+        <div class="band b2" id="b2"></div>
+        <div class="band b3" id="b3"></div>
+        <div class="band b4" id="b4"></div>
+        <div class="marker" id="marker"></div>
+      </div>
+      <div class="gauge-axis" id="gauge-axis"></div>
+    </div>
+  </div>
+
+  <a class="embed-footer" id="embed-footer" href="https://cost.extrautil.com/" target="_blank" rel="noopener">Open full tool ↗</a>
+
+  <div class="toggles">
+    <button class="chip" id="chip-share" title="Copy a shareable link to this scenario">🔗 Share</button>
+    <button class="chip" id="chip-csv" title="Download the comparison table as CSV">⇩ CSV</button>
+    <button class="chip chip-reset" id="chip-reset" title="Reset">↻ Reset</button>
+  </div>
+
+  <hr class="divider" />
+
+  <details class="collapsible" id="radar-details" open>
+    <summary><span>Quality-of-life radar (countries)</span></summary>
+    <div class="chart-wrap">
+      <canvas id="radar" role="img" aria-label="Quality of life radar chart"></canvas>
+    </div>
+    <p style="font-size:11px;color:var(--dim);margin:8px 0 0;">Numbeo sub-indices for the selected country (blue) versus the global top-20 median (orange). Higher is better on every axis; affordability axis inverts cost-of-living.</p>
+  </details>
+
+  <details class="collapsible" id="ranking-details">
+    <summary><span>All places, ranked</span></summary>
+    <div class="chart-controls" style="display:flex;flex-wrap:wrap;gap:6px;margin:0.5rem 0;align-items:center;">
+      <span style="font-size:12px;color:var(--muted);margin-right:4px;">Show:</span>
+      <button class="chip rank-chip active" data-rank="us">US cities</button>
+      <button class="chip rank-chip" data-rank="country">Countries</button>
+    </div>
+    <div id="ranking-table-wrap"></div>
+  </details>
+
+  <section class="faq" itemscope itemtype="https://schema.org/FAQPage">
+    <h2>Frequently asked questions</h2>
+
+    <details itemscope itemprop="mainEntity" itemtype="https://schema.org/Question">
+      <summary itemprop="name">Where does the data come from?</summary>
+      <div itemscope itemprop="acceptedAnswer" itemtype="https://schema.org/Answer">
+        <p itemprop="text">US data layers federal public-domain sources: Bureau of Economic Analysis Regional Price Parities (RPPs) for state/metro multipliers; Bureau of Labor Statistics Occupational Employment and Wage Statistics (OEWS) for median wages; HUD Fair Market Rents for 2-bedroom housing costs; Census American Community Survey for median household income, life expectancy and commute; FBI Uniform Crime Reports for crime rates; Visual Capitalist's annual "salary needed to live comfortably" report for the top featured cities. Country data uses Numbeo's Quality of Life Index (NYC=100 baseline) cross-referenced with CEO World rankings and OECD Better Life Index.</p>
+      </div>
+    </details>
+
+    <details itemscope itemprop="mainEntity" itemtype="https://schema.org/Question">
+      <summary itemprop="name">What's "comfortable salary" vs. "living wage" vs. "median"?</summary>
+      <div itemscope itemprop="acceptedAnswer" itemtype="https://schema.org/Answer">
+        <p itemprop="text">Three different bars. <strong>Living wage</strong> (single adult, MIT methodology) is the bare-minimum income to cover food, housing, transport, healthcare, and basic essentials in a given metro — no savings, no discretionary spend. <strong>Median household income</strong> is what a typical household actually earns there (Census ACS). <strong>Comfortable salary</strong> is what's needed to cover the basics plus retirement contributions, restaurant meals, vacations, and discretionary spending — substantially higher than the living wage. The affordability gauge plots your salary against all three.</p>
+      </div>
+    </details>
+
+    <details itemscope itemprop="mainEntity" itemtype="https://schema.org/Question">
+      <summary itemprop="name">Why not use the federal poverty line or CPI?</summary>
+      <div itemscope itemprop="acceptedAnswer" itemtype="https://schema.org/Answer">
+        <p itemprop="text">The federal poverty line is a 1963 formula based on three times the cost of a minimum food diet. It hasn't been updated to reflect modern housing, healthcare, or childcare realities, and it's a single national number — useless for comparing cities. CPI has its own gaps for cost-of-living estimation: it assigns less than 25% weight to housing rent (assumes most Americans own their homes), and it largely ignores out-of-pocket health-insurance premiums. Using BEA RPP × HUD FMR × MIT-style wage formulas instead gives a localized, modernized estimate.</p>
+      </div>
+    </details>
+
+    <details itemscope itemprop="mainEntity" itemtype="https://schema.org/Question">
+      <summary itemprop="name">How accurate is this for my exact situation?</summary>
+      <div itemscope itemprop="acceptedAnswer" itemtype="https://schema.org/Answer">
+        <p itemprop="text">It's a model, not a quote. Real-life costs depend on family size, school choices, commute pattern, healthcare needs, lifestyle, and household-specific factors that no aggregate index captures. Treat the numbers as directionally correct (higher RPPs really do mean costlier housing; higher median wages really do mean better job markets) and within roughly 5–10% of the average resident's experience. Don't use any single line item as exact.</p>
+      </div>
+    </details>
+
+    <details itemscope itemprop="mainEntity" itemtype="https://schema.org/Question">
+      <summary itemprop="name">Why only 40 US cities — what about my town?</summary>
+      <div itemscope itemprop="acceptedAnswer" itemtype="https://schema.org/Answer">
+        <p itemprop="text">v1 ships with the 10 cities from Visual Capitalist's "comfortable salary" report plus 30 of the largest US metros. Adding all 3,144 US counties (the MIT Living Wage scope) is on the roadmap and well-supported by the data layer — once the dataset is integrated, every county will get the same dashboard treatment.</p>
+      </div>
+    </details>
+
+    <details itemscope itemprop="mainEntity" itemtype="https://schema.org/Question">
+      <summary itemprop="name">Why these 20 countries and not others?</summary>
+      <div itemscope itemprop="acceptedAnswer" itemtype="https://schema.org/Answer">
+        <p itemprop="text">They're Numbeo's top 20 by Quality of Life Index for the most recent reporting period, cross-referenced with CEO World and OECD rankings. Numbeo can be skewed by crowdsourced bias (zero-tax states with subsidized healthcare can outrank liberal democracies just on purchasing power), so the multi-source cross-check gives a more defensible top-20.</p>
+      </div>
+    </details>
+  </section>
+
+  <section class="about">
+    <p>This tool synthesizes federal US public-domain datasets and aggregated international quality-of-life indices into a single comparable dashboard. All math runs entirely in your browser — no servers, no tracking beyond standard analytics, no signup.</p>
+    <p>Part of <a href="https://extrautil.com/" rel="noopener">extrautil</a> — a collection of free, practical tools. Educational tool only; not financial, relocation, or career advice.</p>
+  </section>
+  </main>
+
+  <button class="scroll-top" id="scroll-top" aria-label="Scroll to top" title="Scroll to top">↑</button>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+  <script type="module">
+    import {
+      resolvePlace, summarizeCity, summarizeCountry, rankUsCities, rankCountries,
+      affordabilityGauge, US_CITIES, COUNTRIES
+    } from './cost.js';
+
+    const DEFAULTS = { p: 'nyc', s: '', r: 'us' };
+    const state = { p: DEFAULTS.p, s: DEFAULTS.s, r: DEFAULTS.r, embed: false, theme: null };
+
+    function $(s) { return document.querySelector(s); }
+    function $$(s) { return Array.from(document.querySelectorAll(s)); }
+
+    function fmtMoney(n, opts = {}) {
+      if (n == null || !isFinite(n)) return '—';
+      const abs = Math.abs(n);
+      if (opts.compact && abs >= 1000) return '$' + (n / 1000).toFixed(abs >= 100000 ? 0 : 1) + 'k';
+      const decimals = abs < 10 ? 2 : 0;
+      return '$' + n.toLocaleString('en-US', { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
+    }
+    function fmtPct(n, decimals = 0) {
+      if (n == null || !isFinite(n)) return '—';
+      const sign = n > 0 ? '+' : '';
+      return sign + n.toFixed(decimals) + '%';
+    }
+    function fmtNum(n, decimals = 1) {
+      if (n == null || !isFinite(n)) return '—';
+      return n.toFixed(decimals);
+    }
+
+    function readState() {
+      const q = new URLSearchParams(location.search);
+      const p = q.get('p');
+      if (p && (US_CITIES[p] || COUNTRIES[p.toUpperCase()])) state.p = p;
+      const s = parseFloat(q.get('s'));
+      state.s = isFinite(s) && s >= 0 ? s : DEFAULTS.s;
+      const r = q.get('r');
+      if (r === 'us' || r === 'country') state.r = r;
+      state.embed = q.get('embed') === '1';
+      const themeQ = q.get('theme');
+      if (themeQ === 'light' || themeQ === 'dark') state.theme = themeQ;
+    }
+
+    function buildQuery(includeEmbed) {
+      const q = new URLSearchParams();
+      if (state.p !== DEFAULTS.p) q.set('p', state.p);
+      if (state.s !== DEFAULTS.s) q.set('s', state.s);
+      if (state.r !== DEFAULTS.r) q.set('r', state.r);
+      if (state.theme) q.set('theme', state.theme);
+      if (includeEmbed) q.set('embed', '1');
+      return q.toString();
+    }
+    function syncUrl() {
+      const qs = buildQuery(state.embed);
+      history.replaceState(null, '', qs ? '?' + qs : location.pathname);
+    }
+    function updateEmbedFooter() {
+      const fullQs = buildQuery(false);
+      $('#embed-footer').href = 'https://cost.extrautil.com/' + (fullQs ? '?' + fullQs : '');
+    }
+
+    function populateSelector() {
+      const cityOpts = Object.values(US_CITIES)
+        .sort((a, b) => a.name.localeCompare(b.name))
+        .map(c => `<option value="${c.id}">${c.name}, ${c.state}</option>`).join('');
+      const countryOpts = Object.values(COUNTRIES)
+        .sort((a, b) => a.name.localeCompare(b.name))
+        .map(c => `<option value="${c.code}">${c.name}</option>`).join('');
+      $('#place').innerHTML =
+        `<optgroup label="US cities">${cityOpts}</optgroup>` +
+        `<optgroup label="Countries">${countryOpts}</optgroup>`;
+    }
+
+    function applyToInputs() {
+      $('#place').value = state.p;
+      $('#salary').value = state.s === '' ? '' : state.s;
+      $$('.rank-chip').forEach(c => c.classList.toggle('active', c.dataset.rank === state.r));
+    }
+
+    function describeScenario() {
+      const place = resolvePlace(state.p);
+      if (!place) return '';
+      if (place.kind === 'us') return `${place.name}, ${place.state} — US city snapshot`;
+      return `${place.name} — country quality-of-life snapshot`;
+    }
+
+    function card(label, value, sub, klass = '') {
+      const subHtml = sub ? `<p class="stat-sub">${sub}</p>` : '';
+      return `<div class="stat-card ${klass}"><p class="stat-label">${label}</p><p class="stat-value">${value}</p>${subHtml}</div>`;
+    }
+
+    function renderHeadline() {
+      const place = resolvePlace(state.p);
+      const el = $('#headline');
+      if (!place) { el.textContent = 'Pick a place to begin.'; return; }
+
+      if (place.kind === 'us') {
+        const c = summarizeCity(state.p);
+        const userS = parseFloat(state.s);
+        if (isFinite(userS) && userS > 0) {
+          const ratio = userS / c.comfortableSalary;
+          if (ratio >= 1) {
+            el.innerHTML = `<strong>${fmtMoney(userS, { compact: true })}</strong> in ${c.name} is comfortable — ${fmtPct((ratio - 1) * 100)} above the local "comfortable" threshold.`;
+          } else if (userS >= c.medianHouseholdIncome) {
+            el.innerHTML = `<strong>${fmtMoney(userS, { compact: true })}</strong> in ${c.name} beats the median household but falls <em>${fmtPct((1 - ratio) * 100)}</em> short of the comfortable threshold.`;
+          } else if (userS >= c.livingWageSingle) {
+            el.innerHTML = `<strong>${fmtMoney(userS, { compact: true })}</strong> in ${c.name} covers the local living wage but lands below the median household income of ${fmtMoney(c.medianHouseholdIncome, { compact: true })}.`;
+          } else {
+            el.innerHTML = `<strong>${fmtMoney(userS, { compact: true })}</strong> in ${c.name} is <em>below</em> the living wage of ${fmtMoney(c.livingWageSingle, { compact: true })} for a single adult.`;
+          }
+        } else {
+          el.innerHTML = `<strong>${c.name}, ${c.state}</strong> — comfortable salary <strong>${fmtMoney(c.comfortableSalary, { compact: true })}</strong>, RPP <strong>${fmtNum(c.rpp, 1)}</strong> (${c.rpp > 100 ? 'above' : 'below'} US average).`;
+        }
+      } else {
+        const c = summarizeCountry(state.p);
+        el.innerHTML = `<strong>${c.name}</strong> — Numbeo QoL <strong>${fmtNum(c.numbeoIndex, 1)}</strong>, CEO World <strong>${fmtNum(c.ceoScore, 1)}</strong>, average wage <strong>${fmtMoney(c.avgSalary, { compact: true })}</strong>.`;
+      }
+    }
+
+    function renderStats() {
+      const place = resolvePlace(state.p);
+      const el = $('#stats');
+      if (!place) { el.innerHTML = ''; return; }
+
+      if (place.kind === 'us') {
+        const c = summarizeCity(state.p);
+        el.innerHTML = [
+          card('Comfortable salary', fmtMoney(c.comfortableSalary, { compact: true }), 'Visual Capitalist 2025', 'accent'),
+          card('Living wage (single)', fmtMoney(c.livingWageSingle, { compact: true }), 'MIT methodology'),
+          card('Median household', fmtMoney(c.medianHouseholdIncome, { compact: true }), 'Census ACS'),
+          card('2BR rent / mo', fmtMoney(c.rent2br, { compact: true }), `HUD FMR · ${fmtPct(c.rentPremium, 0)} vs US`),
+          card('RPP (US=100)', fmtNum(c.rpp, 1), c.rpp > 100 ? 'pricier than avg' : 'cheaper than avg'),
+          card('Median wage', fmtMoney(c.medianWage, { compact: true }), `BLS OEWS · ${fmtPct(c.wagePremium, 0)} vs US`),
+          card('Life expectancy', fmtNum(c.lifeExpectancy, 1) + ' yr', 'CDC'),
+          card('Mean commute', fmtNum(c.commuteMin, 0) + ' min', 'Census ACS')
+        ].join('');
+      } else {
+        const c = summarizeCountry(state.p);
+        el.innerHTML = [
+          card('Numbeo QoL Index', fmtNum(c.numbeoIndex, 1), 'global rank-driver', 'accent'),
+          card('CEO World score', fmtNum(c.ceoScore, 1), 'cross-check'),
+          card('Avg salary', fmtMoney(c.avgSalary, { compact: true }), 'national mean'),
+          card('Effective PP', fmtNum(c.effectivePP, 0), 'NYC = 100', c.effectivePP > 100 ? 'good' : ''),
+          card('Safety', fmtNum(c.sub.safety, 0), 'Numbeo · 0–100'),
+          card('Healthcare', fmtNum(c.sub.health, 0), 'Numbeo · 0–100'),
+          card('Climate', fmtNum(c.sub.climate, 0), 'Numbeo · 0–100'),
+          card('Life expectancy', fmtNum(c.lifeExpectancy, 1) + ' yr', '')
+        ].join('');
+      }
+    }
+
+    function renderGauge() {
+      const place = resolvePlace(state.p);
+      const wrap = $('#gauge-wrap');
+      if (!place || place.kind !== 'us') { wrap.hidden = true; return; }
+      const c = summarizeCity(state.p);
+      const userS = parseFloat(state.s);
+
+      // Scale: 0 → 1.5× comfortable salary
+      const max = c.comfortableSalary * 1.5;
+      const pct = (v) => Math.max(0, Math.min(100, (v / max) * 100));
+
+      const lw = pct(c.livingWageSingle);
+      const med = pct(c.medianHouseholdIncome);
+      const cmf = pct(c.comfortableSalary);
+
+      // 4 colored bands: 0→livingWage red, →median amber, →comfort green-light, →end green
+      $('#b1').style.left = '0%';   $('#b1').style.width = lw + '%';
+      $('#b2').style.left = lw + '%'; $('#b2').style.width = (med - lw) + '%';
+      $('#b3').style.left = med + '%'; $('#b3').style.width = (cmf - med) + '%';
+      $('#b4').style.left = cmf + '%'; $('#b4').style.width = (100 - cmf) + '%';
+
+      const marker = $('#marker');
+      if (isFinite(userS) && userS > 0) {
+        marker.style.display = 'block';
+        marker.style.left = pct(userS) + '%';
+      } else {
+        marker.style.display = 'none';
+      }
+
+      $('#gauge-axis').innerHTML = `
+        <span>$0</span>
+        <span style="margin-left:auto;">${fmtMoney(c.livingWageSingle, { compact: true })} living</span>
+        <span style="margin-left:auto;">${fmtMoney(c.medianHouseholdIncome, { compact: true })} median</span>
+        <span style="margin-left:auto;">${fmtMoney(c.comfortableSalary, { compact: true })} comfort</span>
+      `;
+
+      wrap.hidden = false;
+    }
+
+    function renderScenarioSummary() {
+      $('#scenario-summary').textContent = describeScenario();
+    }
+
+    let radarChart;
+    function renderRadar() {
+      const place = resolvePlace(state.p);
+      const ctx = document.getElementById('radar');
+      if (!ctx) return;
+      // Hide chart entirely for US cities; radar only meaningful for countries
+      if (!place || place.kind !== 'country') {
+        if (radarChart) { radarChart.destroy(); radarChart = null; }
+        ctx.style.opacity = '0.25';
+        return;
+      }
+      ctx.style.opacity = '1';
+      const c = summarizeCountry(state.p);
+      const labels = ['Safety', 'Health', 'Purchasing\nPower', 'Cleanness', 'Climate', 'Affordability', 'Property\naffordability', 'Commute'];
+      const selected = [c.radar.safety, c.radar.health, c.radar.purchasingPower, c.radar.pollutionCleanness, c.radar.climate, c.radar.affordability, c.radar.propertyAffordability, c.radar.trafficCommute];
+      // Median of all 20 countries on each axis
+      const all = Object.values(COUNTRIES).map(x => summarizeCountry(x.code).radar);
+      const median = (arr) => { const s = [...arr].sort((a,b) => a - b); return s[Math.floor(s.length / 2)]; };
+      const median20 = labels.map((_, i) => {
+        const key = ['safety', 'health', 'purchasingPower', 'pollutionCleanness', 'climate', 'affordability', 'propertyAffordability', 'trafficCommute'][i];
+        return median(all.map(r => r[key]));
+      });
+
+      const datasets = [
+        { label: c.name, data: selected, borderColor: '#185FA5', backgroundColor: 'rgba(55,138,221,0.20)', fill: true, pointRadius: 3, borderWidth: 2 },
+        { label: 'Top-20 median', data: median20, borderColor: '#C7522A', backgroundColor: 'rgba(199,82,42,0.10)', fill: false, pointRadius: 2, borderWidth: 2, borderDash: [4, 4] }
+      ];
+
+      if (radarChart) {
+        radarChart.data.datasets = datasets;
+        radarChart.update('none');
+      } else {
+        radarChart = new Chart(ctx, {
+          type: 'radar',
+          data: { labels, datasets },
+          options: {
+            responsive: true, maintainAspectRatio: false,
+            plugins: {
+              legend: { position: 'bottom', labels: { font: { size: 11 } } },
+              tooltip: { callbacks: { label: (item) => `${item.dataset.label}: ${item.parsed.r.toFixed(0)}` } }
+            },
+            scales: {
+              r: {
+                min: 0, max: 140,
+                ticks: { font: { size: 9 }, stepSize: 35, color: '#888', backdropColor: 'transparent' },
+                pointLabels: { font: { size: 11 }, color: '#888' },
+                grid: { color: 'rgba(128,128,128,0.2)' },
+                angleLines: { color: 'rgba(128,128,128,0.2)' }
+              }
+            }
+          }
+        });
+      }
+    }
+
+    let rankSort = { us: { by: 'comfortableSalary', order: 'asc' }, country: { by: 'numbeoIndex', order: 'desc' } };
+
+    function renderRanking() {
+      const wrap = $('#ranking-table-wrap');
+      const r = state.r;
+      const cfg = rankSort[r];
+      let rows, headers, kind;
+      if (r === 'us') {
+        rows = rankUsCities(cfg);
+        headers = [
+          { key: 'name', label: 'City' },
+          { key: 'rpp', label: 'RPP', fmt: (v) => fmtNum(v, 1) },
+          { key: 'medianHouseholdIncome', label: 'Median HH', fmt: (v) => fmtMoney(v, { compact: true }) },
+          { key: 'rent2br', label: '2BR rent', fmt: (v) => fmtMoney(v, { compact: true }) },
+          { key: 'comfortableSalary', label: 'Comfortable', fmt: (v) => fmtMoney(v, { compact: true }) }
+        ];
+        kind = 'us';
+      } else {
+        rows = rankCountries(cfg);
+        headers = [
+          { key: 'name', label: 'Country' },
+          { key: 'numbeoIndex', label: 'Numbeo', fmt: (v) => fmtNum(v, 1) },
+          { key: 'ceoScore', label: 'CEO World', fmt: (v) => fmtNum(v, 1) },
+          { key: 'avgSalary', label: 'Avg salary', fmt: (v) => fmtMoney(v, { compact: true }) },
+          { key: 'lifeExpectancy', label: 'Life exp', fmt: (v) => fmtNum(v, 1) + ' yr' }
+        ];
+        kind = 'country';
+      }
+      const ths = headers.map(h => {
+        const cls = cfg.by === h.key ? (cfg.order === 'asc' ? 'sort-asc' : 'sort-desc') : '';
+        return `<th class="${cls}" data-key="${h.key}">${h.label}</th>`;
+      }).join('');
+      const trs = rows.map(row => {
+        const id = kind === 'us' ? row.id : row.code;
+        const isSel = id === state.p ? 'selected' : '';
+        return `<tr class="${isSel}" data-id="${id}" data-kind="${kind}">${headers.map(h => {
+          const v = row[h.key];
+          return `<td>${h.fmt ? h.fmt(v) : v}</td>`;
+        }).join('')}</tr>`;
+      }).join('');
+      wrap.innerHTML = `<table class="data-table"><thead><tr>${ths}</tr></thead><tbody>${trs}</tbody></table>`;
+
+      // Sort header clicks
+      wrap.querySelectorAll('th').forEach(th => {
+        th.addEventListener('click', () => {
+          const key = th.dataset.key;
+          if (cfg.by === key) cfg.order = cfg.order === 'asc' ? 'desc' : 'asc';
+          else { cfg.by = key; cfg.order = (key === 'name') ? 'asc' : (r === 'us' ? 'asc' : 'desc'); }
+          renderRanking();
+        });
+      });
+      // Row clicks select
+      wrap.querySelectorAll('tr[data-id]').forEach(tr => {
+        tr.addEventListener('click', () => {
+          state.p = tr.dataset.id;
+          applyToInputs();
+          recompute();
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        });
+      });
+    }
+
+    function exportCsv() {
+      const r = state.r;
+      let rows, header, fname;
+      if (r === 'us') {
+        rows = rankUsCities(rankSort.us);
+        header = ['city', 'state', 'rpp', 'median_wage', 'median_hh_income', 'rent_2br', 'comfortable_salary', 'living_wage_single', 'life_expectancy', 'commute_min'];
+        rows = rows.map(c => [c.name, c.state, c.rpp, c.medianWage, c.medianHouseholdIncome, c.rent2br, c.comfortableSalary, c.livingWageSingle.toFixed(0), c.lifeExpectancy, c.commuteMin]);
+        fname = 'cost-of-living-us-cities.csv';
+      } else {
+        rows = rankCountries(rankSort.country);
+        header = ['country', 'code', 'numbeo_index', 'ceo_world', 'avg_salary', 'life_expectancy', 'safety', 'health', 'purchasing_power', 'climate'];
+        rows = rows.map(c => [c.name, c.code, c.numbeoIndex, c.ceoScore, c.avgSalary, c.lifeExpectancy, c.sub.safety, c.sub.health, c.sub.purchasingPower, c.sub.climate]);
+        fname = 'cost-of-living-countries.csv';
+      }
+      const csv = [header, ...rows].map(rr => rr.map(c => {
+        const s = String(c);
+        return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+      }).join(',')).join('\n');
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url; link.download = fname;
+      document.body.appendChild(link); link.click(); document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    }
+
+    function recompute() {
+      renderHeadline();
+      renderStats();
+      renderGauge();
+      renderRadar();
+      renderScenarioSummary();
+      renderRanking();
+      updateEmbedFooter();
+      syncUrl();
+    }
+
+    function bindEvents() {
+      $('#place').addEventListener('change', () => { state.p = $('#place').value; recompute(); });
+      $('#salary').addEventListener('input', () => {
+        const v = parseFloat($('#salary').value);
+        state.s = isFinite(v) && v >= 0 ? v : '';
+        recompute();
+      });
+      $$('.rank-chip').forEach(c => {
+        c.addEventListener('click', () => {
+          state.r = c.dataset.rank;
+          $$('.rank-chip').forEach(x => x.classList.toggle('active', x === c));
+          renderRanking();
+          syncUrl(); updateEmbedFooter();
+        });
+      });
+      $('#chip-share').addEventListener('click', async () => {
+        try {
+          await navigator.clipboard.writeText(location.href);
+          const orig = $('#chip-share').textContent;
+          $('#chip-share').textContent = '✓ Copied';
+          setTimeout(() => $('#chip-share').textContent = orig, 1400);
+        } catch { prompt('Copy this link:', location.href); }
+      });
+      $('#chip-csv').addEventListener('click', exportCsv);
+      $('#chip-reset').addEventListener('click', () => {
+        Object.assign(state, DEFAULTS);
+        applyToInputs(); recompute();
+      });
+      $('#theme-toggle').addEventListener('click', () => {
+        const cur = document.documentElement.getAttribute('data-theme') || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+        const next = cur === 'dark' ? 'light' : 'dark';
+        document.documentElement.setAttribute('data-theme', next);
+        try { localStorage.setItem('theme', next); } catch {}
+        state.theme = next;
+        $('#theme-icon').textContent = next === 'dark' ? '🌙' : '☀';
+        if (radarChart) radarChart.update('none');
+        syncUrl();
+      });
+    }
+
+    function initTheme() {
+      let theme;
+      if (state.theme === 'light' || state.theme === 'dark') theme = state.theme;
+      else {
+        let saved = null; try { saved = localStorage.getItem('theme'); } catch {}
+        const sysDark = matchMedia('(prefers-color-scheme: dark)').matches;
+        theme = saved || (sysDark ? 'dark' : 'light');
+      }
+      document.documentElement.setAttribute('data-theme', theme);
+      $('#theme-icon').textContent = theme === 'dark' ? '🌙' : '☀';
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      populateSelector();
+      readState();
+      initTheme();
+      if (state.embed) document.body.classList.add('embed');
+      applyToInputs();
+      bindEvents();
+
+      const scrollBtn = $('#scroll-top');
+      const updateScrollBtn = () => scrollBtn.classList.toggle('visible', window.scrollY > 300);
+      window.addEventListener('scroll', updateScrollBtn, { passive: true });
+      scrollBtn.addEventListener('click', () => window.scrollTo({ top: 0, behavior: 'smooth' }));
+      updateScrollBtn();
+
+      recompute();
+    });
+  </script>
+
+  <script>
+    if ("serviceWorker" in navigator) {
+      window.addEventListener("load", () => {
+        navigator.serviceWorker.register("/sw.js").catch(() => {});
+      });
+    }
+  </script>
+</body>
+</html>

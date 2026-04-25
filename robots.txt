@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://cost.extrautil.com/sitemap.xml

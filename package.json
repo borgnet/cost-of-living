@@ -1,0 +1,14 @@
+{
+  "name": "cost-of-living",
+  "version": "1.0.0",
+  "description": "Free interactive cost-of-living + quality-of-life dashboard for US cities and top global countries. Vanilla static site, URL-shareable, embeddable, PWA.",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test 'tests/**/*.test.js'",
+    "refresh": "python3 scripts/refresh-data.py"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

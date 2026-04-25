@@ -1,0 +1,88 @@
+# Cost of Living & Quality of Life — cost.extrautil.com
+
+A free, static client-side web tool that synthesizes US federal public-domain
+datasets and aggregated international quality-of-life indices into a single
+comparable dashboard for 40 major US cities + 20 top global countries.
+
+## How to use programmatically
+
+URL: https://cost.extrautil.com/?{params}
+
+Parameters:
+  p      Place id. US city slugs: nyc, san_jose, irvine, boston, san_diego,
+         san_franc, oakland, honolulu, seattle, jersey_cty, plus 30 more
+         (los_angeles, chicago, washington, miami, atlanta, dallas, houston,
+         austin, denver, phoenix, las_vegas, portland, philadelphia,
+         minneapolis, detroit, charlotte, orlando, tampa, pittsburgh, st_louis,
+         baltimore, cincinnati, cleveland, kansas_city, indianapolis, columbus,
+         nashville, raleigh, salt_lake, albuquerque, oklahoma_cy, memphis).
+         Country ids: ISO-2 codes (LU, NL, DK, OM, CH, FI, NO, IS, AT, DE,
+         AU, NZ, SE, US, EE, QA, JP, ES, SI, HR).
+  s      User salary (USD/year). Triggers the affordability gauge for US cities.
+  r      Ranking table mode: us | country  (default: us).
+  theme  light | dark
+  embed  1 to render in embed mode
+
+Example:
+  https://cost.extrautil.com/?p=austin&s=120000
+
+## Data layers and computation
+
+US cities:
+  estimated_living_wage = $45,000 × (RPP / 100)            # MIT methodology
+  comfortable_salary    = source: Visual Capitalist 2025 (top 10) or
+                           = $95,000 × (RPP / 100)         # for 30 derived metros
+  rent_2br              = HUD Fair Market Rents
+  median_household_income = Census ACS 5-year
+  median_wage           = BLS OEWS metro/state median, all occupations
+  rpp                   = BEA Regional Price Parity (US=100)
+
+Countries:
+  numbeo_index          = Numbeo Quality of Life Index
+  ceo_score             = CEO World Quality of Life Score
+  effective_pp          = purchasingPower × (100 / costOfLiving)
+  radar (8 axes)        = Numbeo sub-indices (Safety, Health, Purchasing
+                          Power, Cleanness, Climate, Affordability,
+                          Property Affordability, Commute)
+
+## Data freshness
+
+Data is baked in at deploy time (static client-side site). Refresh cadences:
+  BEA RPP             — annual (Dec)
+  HUD Fair Market Rents — annual (Oct)
+  BLS OEWS wages     — annual (Mar/Apr)
+  Census ACS          — annual (Dec)
+  CDC / FBI / EPA     — annual
+  Numbeo              — quarterly snapshot
+
+scripts/refresh-data.py documents the regeneration procedure.
+
+## Source files
+
+  data.js      — snapshot: US_CITIES, COUNTRIES, NATIONAL_* baselines, source vintage
+  cost.js      — math: resolvePlace, summarizeCity, summarizeCountry,
+                 rankUsCities, rankCountries, affordabilityGauge, searchPlaces
+  index.html   — UI; vanilla, single-file
+  tests/       — node --test suite, 28 tests
+  scripts/     — refresh-data.py for documented data regeneration
+
+## What this tool is not
+
+  - Not a real-time price feed.
+  - Not store-by-store, county-level for all 3,144 US counties (yet).
+  - Not a personal cost-of-living index — it's an aggregate model.
+  - Not financial, relocation, or career advice.
+
+## Sources
+
+  BEA RPPs:    https://www.bea.gov/data/prices-inflation/regional-price-parities-state-and-metro-area
+  HUD FMR:     https://www.huduser.gov/portal/datasets/fmr.html
+  BLS OEWS:    https://www.bls.gov/oes/
+  Census ACS:  https://www.census.gov/programs-surveys/acs/data.html
+  CDC NCHS:    https://www.cdc.gov/nchs/
+  FBI UCR:     https://ucr.fbi.gov/
+  Numbeo:      https://www.numbeo.com/quality-of-life/rankings_by_country.jsp
+  CEO World:   https://ceoworld.biz/
+  MIT Living Wage: https://livingwage.mit.edu/
+
+Part of extrautil.com — a collection of free, practical, privacy-friendly tools.
