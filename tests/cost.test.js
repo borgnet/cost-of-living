@@ -115,10 +115,18 @@ test('rankCountries: default desc by Numbeo — Luxembourg first', () => {
   assert.equal(r[0].code, 'LU');
 });
 
-test('rankCountries: total length equals 20', () => {
+test('rankCountries: total length matches the COUNTRIES table', () => {
   const r = rankCountries();
   assert.equal(r.length, Object.keys(COUNTRIES).length);
-  assert.equal(r.length, 20);
+});
+
+test('COUNTRIES: tier-1 cohort is present and BRICS + retirement destinations are included', () => {
+  const tier1 = ['LU','NL','DK','CH','FI','NO','IS','AT','DE','AU','NZ','SE','US','EE','JP','ES','SI','HR','OM','QA'];
+  for (const c of tier1) assert.ok(COUNTRIES[c], `missing tier-1 country ${c}`);
+  const brics = ['BR','RU','IN','CN','ZA'];
+  for (const c of brics) assert.ok(COUNTRIES[c], `missing BRICS country ${c}`);
+  const retirement = ['MX','CR','PA','PT','IT','FR','TH','MY','CO','GR','PH'];
+  for (const c of retirement) assert.ok(COUNTRIES[c], `missing retirement country ${c}`);
 });
 
 // ─── affordabilityGauge ──────────────────────────────────────────────────────
@@ -179,9 +187,13 @@ test('every US city has a sane RPP between 80 and 130', () => {
   }
 });
 
-test('every country has Numbeo index > 100 (these are top 20 globally)', () => {
+test('every country has a sane Numbeo index between 80 and 250', () => {
+  // The tier-1 cohort is well above 100; BRICS + retirement destinations
+  // can land below it (lower QoL is exactly what makes some of those
+  // markets attractive on the cost-of-living axis). Just sanity-check
+  // the index is in a plausible range.
   for (const [code, c] of Object.entries(COUNTRIES)) {
-    assert.ok(c.numbeoIndex > 100, `${code} numbeo=${c.numbeoIndex}`);
+    assert.ok(c.numbeoIndex >= 80 && c.numbeoIndex <= 250, `${code} numbeo=${c.numbeoIndex} out of range`);
   }
 });
 

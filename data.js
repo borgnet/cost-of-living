@@ -194,7 +194,7 @@ export const US_CITIES = {
   milwaukee:  { id: 'milwaukee',  name: 'Milwaukee',      state: 'WI', rpp:  95.0, medianWage: 55020,  medianHouseholdIncome: 70030,  rent2br: 1290, comfortableSalary: 90250,  lifeExpectancy: 78.0, crimeRate: 1245,commuteMin: 23.0 }
 };
 
-// Top 20 countries by quality of life — Numbeo + CEO World indices,
+// Top countries by quality of life — Numbeo + CEO World indices,
 // supplemented with average annual wage and Numbeo sub-indices for the
 // "Global Quality Radar" chart. Sub-indices are 0-100 scale, higher = better
 // (cost-of-living index is inverse — higher = more expensive).
@@ -228,7 +228,33 @@ export const COUNTRIES = {
   JP: { code: 'JP', name: 'Japan',          numbeoIndex: 188.80, ceoScore: 92.34, avgSalary: 40000, lifeExpectancy: 84.5, safety: 79.0, health: 80.0, purchasingPower:  82.5, pollutionCleanness: 78.5, climate: 82.0, costOfLiving: 53.0, propertyAffordability: 50.0, trafficCommute: 65.0 },
   ES: { code: 'ES', name: 'Spain',          numbeoIndex: 187.20, ceoScore: 90.37, avgSalary: 35000, lifeExpectancy: 83.3, safety: 67.5, health: 72.5, purchasingPower:  64.0, pollutionCleanness: 72.0, climate: 95.0, costOfLiving: 50.0, propertyAffordability: 40.0, trafficCommute: 70.0 },
   SI: { code: 'SI', name: 'Slovenia',       numbeoIndex: 182.40, ceoScore: 92.40, avgSalary: 35000, lifeExpectancy: 81.5, safety: 78.5, health: 60.0, purchasingPower:  60.0, pollutionCleanness: 78.0, climate: 78.0, costOfLiving: 49.5, propertyAffordability: 35.0, trafficCommute: 80.0 },
-  HR: { code: 'HR', name: 'Croatia',        numbeoIndex: 181.70, ceoScore: 87.47, avgSalary: 25000, lifeExpectancy: 78.5, safety: 75.0, health: 60.0, purchasingPower:  53.0, pollutionCleanness: 70.0, climate: 88.0, costOfLiving: 47.0, propertyAffordability: 30.0, trafficCommute: 75.0 }
+  HR: { code: 'HR', name: 'Croatia',        numbeoIndex: 181.70, ceoScore: 87.47, avgSalary: 25000, lifeExpectancy: 78.5, safety: 75.0, health: 60.0, purchasingPower:  53.0, pollutionCleanness: 70.0, climate: 88.0, costOfLiving: 47.0, propertyAffordability: 30.0, trafficCommute: 75.0 },
+
+  // ─── BRICS bloc ──────────────────────────────────────────────────────────
+  BR: { code: 'BR', name: 'Brazil',         numbeoIndex: 130.20, ceoScore: 67.50, avgSalary:  9000, lifeExpectancy: 75.5, safety: 28.0, health: 56.0, purchasingPower: 38.0, pollutionCleanness: 50.0, climate: 79.0, costOfLiving: 32.0, propertyAffordability: 25.0, trafficCommute: 50.0 },
+  RU: { code: 'RU', name: 'Russia',         numbeoIndex: 113.40, ceoScore: 60.20, avgSalary: 10500, lifeExpectancy: 71.0, safety: 56.0, health: 56.0, purchasingPower: 41.0, pollutionCleanness: 53.0, climate: 49.0, costOfLiving: 33.0, propertyAffordability: 35.0, trafficCommute: 55.0 },
+  IN: { code: 'IN', name: 'India',          numbeoIndex: 117.80, ceoScore: 58.40, avgSalary:  3500, lifeExpectancy: 70.5, safety: 56.0, health: 67.0, purchasingPower: 31.0, pollutionCleanness: 28.0, climate: 65.0, costOfLiving: 24.0, propertyAffordability: 25.0, trafficCommute: 55.0 },
+  CN: { code: 'CN', name: 'China',          numbeoIndex: 126.50, ceoScore: 70.10, avgSalary: 17500, lifeExpectancy: 78.0, safety: 67.0, health: 64.0, purchasingPower: 47.0, pollutionCleanness: 38.0, climate: 70.0, costOfLiving: 41.0, propertyAffordability: 18.0, trafficCommute: 55.0 },
+  ZA: { code: 'ZA', name: 'South Africa',   numbeoIndex:  92.60, ceoScore: 50.30, avgSalary: 12500, lifeExpectancy: 65.0, safety: 22.0, health: 64.0, purchasingPower: 47.0, pollutionCleanness: 53.0, climate: 88.0, costOfLiving: 41.0, propertyAffordability: 50.0, trafficCommute: 65.0 },
+
+  // ─── Popular American-retirement destinations ───────────────────────────
+  // Cohort sourced from International Living's "World's Best Places to Retire"
+  // 2024-2025 ranking and the State Dept's most common Social Security payee
+  // countries. These add lower-cost-of-living options below the 20-country
+  // tier-1 cohort above; their Numbeo QoL is lower because the index weights
+  // safety/health/property heavily, but the cost-of-living attraction is
+  // captured in the costOfLiving + propertyAffordability sub-indices.
+  MX: { code: 'MX', name: 'Mexico',         numbeoIndex: 145.20, ceoScore: 64.20, avgSalary: 11000, lifeExpectancy: 75.0, safety: 41.0, health: 60.0, purchasingPower: 42.0, pollutionCleanness: 45.0, climate: 88.0, costOfLiving: 32.0, propertyAffordability: 50.0, trafficCommute: 50.0 },
+  CR: { code: 'CR', name: 'Costa Rica',     numbeoIndex: 152.10, ceoScore: 71.40, avgSalary: 12000, lifeExpectancy: 80.5, safety: 48.0, health: 65.0, purchasingPower: 40.0, pollutionCleanness: 60.0, climate: 86.0, costOfLiving: 41.0, propertyAffordability: 40.0, trafficCommute: 55.0 },
+  PA: { code: 'PA', name: 'Panama',         numbeoIndex: 148.50, ceoScore: 70.80, avgSalary: 14500, lifeExpectancy: 78.5, safety: 55.0, health: 65.0, purchasingPower: 52.0, pollutionCleanness: 60.0, climate: 78.0, costOfLiving: 47.0, propertyAffordability: 45.0, trafficCommute: 55.0 },
+  PT: { code: 'PT', name: 'Portugal',       numbeoIndex: 175.80, ceoScore: 86.20, avgSalary: 22000, lifeExpectancy: 81.5, safety: 79.0, health: 72.0, purchasingPower: 50.0, pollutionCleanness: 75.0, climate: 95.0, costOfLiving: 52.0, propertyAffordability: 30.0, trafficCommute: 70.0 },
+  IT: { code: 'IT', name: 'Italy',          numbeoIndex: 168.40, ceoScore: 87.10, avgSalary: 32000, lifeExpectancy: 83.5, safety: 60.0, health: 73.0, purchasingPower: 60.0, pollutionCleanness: 55.0, climate: 90.0, costOfLiving: 60.0, propertyAffordability: 45.0, trafficCommute: 65.0 },
+  FR: { code: 'FR', name: 'France',         numbeoIndex: 174.50, ceoScore: 91.40, avgSalary: 42000, lifeExpectancy: 82.5, safety: 50.0, health: 80.0, purchasingPower: 78.0, pollutionCleanness: 55.0, climate: 85.0, costOfLiving: 70.0, propertyAffordability: 35.0, trafficCommute: 65.0 },
+  TH: { code: 'TH', name: 'Thailand',       numbeoIndex: 138.40, ceoScore: 67.30, avgSalary:  8000, lifeExpectancy: 77.5, safety: 60.0, health: 78.0, purchasingPower: 38.0, pollutionCleanness: 35.0, climate: 78.0, costOfLiving: 38.0, propertyAffordability: 25.0, trafficCommute: 50.0 },
+  MY: { code: 'MY', name: 'Malaysia',       numbeoIndex: 156.30, ceoScore: 73.80, avgSalary: 13000, lifeExpectancy: 76.5, safety: 60.0, health: 75.0, purchasingPower: 60.0, pollutionCleanness: 50.0, climate: 70.0, costOfLiving: 36.0, propertyAffordability: 40.0, trafficCommute: 60.0 },
+  CO: { code: 'CO', name: 'Colombia',       numbeoIndex: 134.10, ceoScore: 60.60, avgSalary:  8000, lifeExpectancy: 77.5, safety: 38.0, health: 75.0, purchasingPower: 33.0, pollutionCleanness: 50.0, climate: 88.0, costOfLiving: 32.0, propertyAffordability: 40.0, trafficCommute: 55.0 },
+  GR: { code: 'GR', name: 'Greece',         numbeoIndex: 162.20, ceoScore: 84.30, avgSalary: 18000, lifeExpectancy: 81.5, safety: 65.0, health: 60.0, purchasingPower: 47.0, pollutionCleanness: 60.0, climate: 92.0, costOfLiving: 56.0, propertyAffordability: 35.0, trafficCommute: 60.0 },
+  PH: { code: 'PH', name: 'Philippines',    numbeoIndex: 110.80, ceoScore: 56.40, avgSalary:  4500, lifeExpectancy: 71.5, safety: 49.0, health: 65.0, purchasingPower: 30.0, pollutionCleanness: 35.0, climate: 73.0, costOfLiving: 36.0, propertyAffordability: 30.0, trafficCommute: 45.0 }
 };
 
 // ─── Feels-like layer (US cities only, v1) ──────────────────────────────────

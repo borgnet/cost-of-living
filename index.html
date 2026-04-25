@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
   <title>Cost of Living &amp; Quality of Life — Compare US Cities and Top Global Countries</title>
-  <meta name="description" content="Free interactive cost-of-living and quality-of-life dashboard. Compare any of 40 major US cities or top-20 global countries. Living wage, comfortable salary, median income, rent, life expectancy, crime, commute — sourced from BEA, BLS, HUD, Census, CDC, and Numbeo. URL-shareable, embeddable, PWA-installable." />
+  <meta name="description" content="Free interactive cost-of-living and quality-of-life dashboard. Compare 60+ US cities and 35+ global countries (BRICS + popular retirement destinations included). Living wage, comfortable salary, median income, rent, life expectancy, crime, commute — sourced from BEA, BLS, HUD, Census, CDC, Tax Foundation, and Numbeo. URL-shareable, embeddable, PWA-installable." />
   <meta name="keywords" content="cost of living, quality of life, living wage, comfortable salary, BEA RPP, BLS OEWS, HUD FMR, Census ACS, Numbeo, US cities, country comparison, relocation calculator" />
   <meta name="robots" content="index, follow" />
   <meta name="theme-color" content="#185FA5" />
@@ -520,9 +520,9 @@
     </details>
 
     <details itemscope itemprop="mainEntity" itemtype="https://schema.org/Question">
-      <summary itemprop="name">Why these 20 countries and not others?</summary>
+      <summary itemprop="name">Which countries are included and why?</summary>
       <div itemscope itemprop="acceptedAnswer" itemtype="https://schema.org/Answer">
-        <p itemprop="text">They're Numbeo's top 20 by Quality of Life Index for the most recent reporting period, cross-referenced with CEO World and OECD rankings. Numbeo can be skewed by crowdsourced bias (zero-tax states with subsidized healthcare can outrank liberal democracies just on purchasing power), so the multi-source cross-check gives a more defensible top-20.</p>
+        <p itemprop="text">Three cohorts. <strong>Top-20 quality-of-life</strong>: Numbeo's top 20 by Quality of Life Index, cross-referenced with CEO World and OECD rankings (Luxembourg, Netherlands, Denmark, Switzerland, Finland, Norway, Iceland, Austria, Germany, Australia, New Zealand, Sweden, US, Estonia, Qatar, Japan, Spain, Slovenia, Croatia, Oman). <strong>BRICS bloc</strong>: Brazil, Russia, India, China, South Africa — the major emerging-economy bloc, useful for international career and lifestyle comparisons. <strong>Popular American retirement destinations</strong>: Mexico, Costa Rica, Panama, Portugal, Italy, France, Thailand, Malaysia, Colombia, Greece, Philippines — the cohort most commonly chosen by US retirees abroad (sourced from International Living's annual ranking and the State Department's Social Security overseas-payee data). Cost-of-living and property-affordability sub-indices capture the cheaper-living draw even when the headline Numbeo QoL score is lower; that's the whole reason these markets are attractive to retirees with US dollar incomes.</p>
       </div>
     </details>
   </section>
@@ -879,9 +879,9 @@
         const c = summarizeCountry(state.p);
         selectedRadar = c.radar;
         selectedName = c.name;
-        peerLabel = 'Top-20 median';
+        peerLabel = 'Country median';
         allRadars = Object.values(COUNTRIES).map(x => summarizeCountry(x.code).radar);
-        peerNote = 'Numbeo sub-indices for the selected country (blue) vs. the top-20 median (orange). Higher is better on every axis.';
+        peerNote = 'Numbeo sub-indices for the selected country (blue) vs. the median across all countries in this dashboard — top-20 quality-of-life cohort plus BRICS plus popular retirement destinations (orange). Higher is better on every axis.';
       } else {
         const c = summarizeCity(state.p);
         selectedRadar = c.radar;
